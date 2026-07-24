@@ -4,12 +4,12 @@ using System.Windows.Forms;
 
 namespace ConvImgCpc {
 	public partial class GenPalette : Form {
-		private int[] palette;
-		private int minStart;
-		Action FctToDo = null;
+		private readonly int[] palette;
+		private readonly int minStart;
+		private readonly Action FctToDo = null;
+		private readonly bool modeRaster = false;
 		public bool done = false;
 		public int start = 0, end = 0;
-		private bool modeRaster = false;
 
 		public GenPalette(int[] p, int ms, Action a) {
 			InitializeComponent();

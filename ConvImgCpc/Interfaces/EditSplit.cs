@@ -6,18 +6,18 @@ using System.Xml.Serialization;
 
 namespace ConvImgCpc {
 	public partial class EditSplit : Form {
-		private DirectBitmap bmpLock;
+		private readonly int offsetX = 0, offsetY = 0;
+		private readonly DirectBitmap bmpLock;
+		private readonly int taillex = 384; // Résolution image horizontale en pixels mode 1
+		private readonly int tailley = 272; // Résolution image verticale en pixels
+		private readonly Label[] colors = new Label[16];
+		private bool doRender;
+		private readonly DirectBitmap bitmapZoom;
+		private readonly Main main;
+		private LigneSplit curLigneSplit;
 		public BitmapCpc bitmapCpc;
-		private int offsetX = 0, offsetY = 0;
 		private int numCol = 0;
 		//private int mode = 1;
-		private int taillex = 384; // Résolution image horizontale en pixels mode 1
-		private int tailley = 272; // Résolution image verticale en pixels
-		private LigneSplit curLigneSplit;
-		private Label[] colors = new Label[16];
-		private bool doRender;
-		private DirectBitmap bitmapZoom;
-		private Main main;
 
 		public EditSplit(Main m, DirectBitmap imgSource) {
 			InitializeComponent();

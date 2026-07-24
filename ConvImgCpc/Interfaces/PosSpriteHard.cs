@@ -11,7 +11,9 @@ namespace ConvImgCpc {
 		Bitmap tmp;
 
 		public Bitmap DrawSpritesHard(PictureBox pict, Bitmap source = null) {
-			pict.Image = tmp;
+			if (pict != null)
+				pict.Image = tmp;
+
 			Bitmap bmp = new Bitmap(source ?? pict.Image);
 			int numBank = 0;
 			for (int spr = 0; spr < 16; spr++) {
@@ -112,6 +114,7 @@ namespace ConvImgCpc {
 				}
 				catch (Exception ex) {
 					MessageBox.Show("Erreur lors de la lecture des positions...");
+					MessageBox.Show(ex.Message, ex.StackTrace);
 				}
 				fileParam.Close();
 			}

@@ -7,8 +7,8 @@ using System.Windows.Forms;
 
 namespace ConvImgCpc {
     public partial class ImportSplit : Form {
-        private SplitEcran splitEcran;
-        DirectBitmap bmpSplit = new DirectBitmap(768, 544);
+        private readonly SplitEcran splitEcran;
+        private readonly DirectBitmap bmpSplit = new DirectBitmap(768, 544);
 
         private const int SEUIL_LUM_1 = 85;     // 0x40;
         private const int SEUIL_LUM_2 = 170;    // 0x80;
@@ -125,8 +125,9 @@ namespace ConvImgCpc {
                     }
                     catch (Exception ex) {
                         MessageBox.Show("Impossible de lire l'image (format inconnu ???)");
-                    }
-                    if (bitmapOk) {
+						MessageBox.Show(ex.Message, ex.StackTrace);
+					}
+					if (bitmapOk) {
                     }
                 }
                 catch (Exception ex) {

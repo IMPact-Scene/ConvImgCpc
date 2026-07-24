@@ -7,20 +7,20 @@ using System.Xml.Serialization;
 
 namespace ConvImgCpc {
 	public partial class EditTrameAscii : Form {
-		private BitmapCpc bmpCpc;
+		private readonly BitmapCpc bmpCpc;
+		private readonly DirectBitmap bmpTrame;
+		private readonly ImageCpc imgCpc;
+		private readonly Param param;
+		private readonly Main main;
 		private int numTrame = 0;
 		private byte penLeft = 1, penRight = 0;
-		private DirectBitmap bmpTrame;
-		private ImageCpc imgCpc;
-		private Param param;
-		private Main main;
 
-		public EditTrameAscii(Main m, ImageSource s, ImageCpc i, Param p) {
+		public EditTrameAscii(Main m, ImageCpc i, Param p) {
 			InitializeComponent();
 			main = m;
 			main.ChangeLanguage(Controls, "EditTrameAscii");
 			imgCpc = i;
-			bmpCpc = i.bitmapCpc;
+			bmpCpc = i.BitmapCpc;
 			param = p;
 			bmpTrame = new DirectBitmap(pictEditMatrice.Width, pictEditMatrice.Height);
 			pictEditMatrice.Image = bmpTrame.Bitmap;
@@ -215,7 +215,7 @@ namespace ConvImgCpc {
 	}
 
 	public class TrameM1 {
-		byte[,] trame = new byte[4, 4];
+		private readonly byte[,] trame = new byte[4, 4];
 		public int nbFound = 0;
 
 		public void SetPix(int x, int y, byte p) {

@@ -20,11 +20,10 @@ namespace ConvImgCpc {
 		private Image imgOrigine;
 		public delegate void ConvertDelegate(bool doConvert, bool noInfo = false);
 		private BitmapCpc[] TabBitmapCpc;
-		public BitmapCpc bitmapCpc { get { return TabBitmapCpc[selImage]; } }
+		public BitmapCpc BitmapCpc { get { return TabBitmapCpc[selImage]; } }
 		public int selImage = 0, maxImage = 0;
 		public Main main;
 		public ConvertDelegate Convert;
-		public int[,] colMode5 = new int[272, 16];
 		private int startGrille, tailleGrille;
 		private bool drawGrille = false;
 
@@ -112,7 +111,7 @@ namespace ConvImgCpc {
 		}
 
 		public void Reset(bool force = false) {
-			if (!bitmapCpc.isCalc || force) {
+			if (!BitmapCpc.isCalc || force) {
 				int startImg = force ? 0 : selImage;
 				int endImg = force ? maxImage : selImage;
 				for (int i = startImg; i < endImg; i++) {
@@ -135,7 +134,7 @@ namespace ConvImgCpc {
 		}
 
 		public void SetPixelCpc(int xPos, int yPos, int col, int tx) {
-			BmpLock.SetHorLineDouble(xPos, yPos, tx, Cpc.GetPalCPC(Cpc.modeVirtuel == 5 || Cpc.modeVirtuel == 6 ? colMode5[Math.Min(271, yPos >> 1), col] : Cpc.Palette[col]));
+			BmpLock.SetHorLineDouble(xPos, yPos, tx, Cpc.GetPalCPC(Cpc.modeVirtuel == 5 || Cpc.modeVirtuel == 6 ? Cpc.colMode5[Math.Min(271, yPos >> 1), col] : Cpc.Palette[col]));
 		}
 
 		public void SetImpDrawMode(bool impDrawMode) {
@@ -315,7 +314,7 @@ namespace ConvImgCpc {
 					for (int x = 0; x < bmpRaster.Width; x++) {
 						RvbColor c = BmpLock.GetPixelColor(x << 1, y << 1);
 						for (int i = 0; i < 16; i++) {
-							RvbColor p = Cpc.RgbCPC[colMode5[y, i]];
+							RvbColor p = Cpc.RgbCPC[Cpc.colMode5[y, i]];
 							if (p.r == c.r && p.v == c.v && p.b == c.b) {
 								if (i > 2) {
 									c2 = p;
@@ -332,8 +331,8 @@ namespace ConvImgCpc {
 					}
 				}
 				bmpRaster.Bitmap.Save(singleName + "_Rasters" + ".png", System.Drawing.Imaging.ImageFormat.Png);
-				bitmapCpc.CreeBmpCpcForceMode1(BmpLock);
-				SauveImage.SauveScr(singleName + ".scr", bitmapCpc, main, Main.PackMethode.None, Main.OutputFormat.Binary, param);
+				BitmapCpc.CreeBmpCpcForceMode1(BmpLock);
+				SauveImage.SauveScr(singleName + ".scr", BitmapCpc, main, Main.PackMethode.None, Main.OutputFormat.Binary, param);
 			}
 			else {
 				DirectBitmap bmpResize = new DirectBitmap(Cpc.TailleX, Cpc.TailleY);
@@ -348,13 +347,13 @@ namespace ConvImgCpc {
 		}
 
 		public void SauveScr(string fileName, Main.OutputFormat format, Param param) {
-			bitmapCpc.CreeBmpCpc(BmpLock);
-			SauveImage.SauveScr(fileName, bitmapCpc, main, Main.PackMethode.None, format, param);
+			BitmapCpc.CreeBmpCpc(BmpLock);
+			SauveImage.SauveScr(fileName, BitmapCpc, main, Main.PackMethode.None, format, param);
 			main.SetInfo("Sauvegarde image CPC ok.");
 		}
 
 		public void SauveCmp(string fileName, Main.PackMethode pkMethode, Main.OutputFormat format, Param param, string version = null) {
-			bitmapCpc.CreeBmpCpc(BmpLock);
+			BitmapCpc.CreeBmpCpc(BmpLock);
 			if (Cpc.modeVirtuel >= 7 && version != null) {
 				SaveAnim sa = new SaveAnim(main, fileName, version, pkMethode);
 				string labelPalette = "Palette";
@@ -362,7 +361,7 @@ namespace ConvImgCpc {
 				sa.Dispose();
 			}
 			else
-				SauveImage.SauveScr(fileName, bitmapCpc, main, pkMethode, format, param, version, colMode5);
+				SauveImage.SauveScr(fileName, BitmapCpc, main, pkMethode, format, param, version, Cpc.colMode5);
 
 			main.SetInfo("Sauvegarde image compactée ok.");
 		}
@@ -473,7 +472,7 @@ namespace ConvImgCpc {
 			int l = 0;
 			for (int i = 0; i < nbImages; i++) {
 				main.SelectImage(i, true);
-				Convert(!bitmapCpc.isCalc, true);
+				Convert(!BitmapCpc.isCalc, true);
 				l += MakeSprite().Length;
 			}
 			l += 3; // 3 octets de fin de fichier
@@ -648,10 +647,10 @@ namespace ConvImgCpc {
 			sw.WriteLine("\tnolist");
 			for (int i = 0; i < nbImages; i++) {
 				main.SelectImage(i, true);
-				Convert(!bitmapCpc.isCalc, true);
+				Convert(!BitmapCpc.isCalc, true);
 				Application.DoEvents();
-				bitmapCpc.CreeBmpCpc(BmpLock);
-				byte[] src = bitmapCpc.bmpCpc;
+				BitmapCpc.CreeBmpCpc(BmpLock);
+				byte[] src = BitmapCpc.bmpCpc;
 				if (i == 0)
 					Buffer.BlockCopy(src, 0, bufOut, 0, src.Length);
 				else {
@@ -696,7 +695,7 @@ namespace ConvImgCpc {
 			StreamWriter sw = File.CreateText(fileName);
 			for (int i = 0; i < nbImages; i++) {
 				main.SelectImage(i, true);
-				Convert(!bitmapCpc.isCalc, true);
+				Convert(!BitmapCpc.isCalc, true);
 				sw.WriteLine("DataImage" + i.ToString("000"));
 				for (int y = 0; y < BitmapCpc.TailleY; y += incy) {
 					int totv = 0, divv = 0;
@@ -781,11 +780,11 @@ namespace ConvImgCpc {
 			if (fileName.ToUpper().EndsWith(".SCR"))
 				fileName = fileName.Substring(0, fileName.Length - 4);
 
-			bitmapCpc.CreeBmpCpc(BmpLock, true, 0);
-			SauveImage.SauveScr(fileName + "0.SCR", bitmapCpc, main, Main.PackMethode.None, Main.OutputFormat.Binary, param);
+			BitmapCpc.CreeBmpCpc(BmpLock, true, 0);
+			SauveImage.SauveScr(fileName + "0.SCR", BitmapCpc, main, Main.PackMethode.None, Main.OutputFormat.Binary, param);
 			Cpc.modeVirtuel = model2;
-			bitmapCpc.CreeBmpCpc(BmpLock, true, 1);
-			SauveImage.SauveScr(fileName + "1.SCR", bitmapCpc, main, Main.PackMethode.None, Main.OutputFormat.Binary, param);
+			BitmapCpc.CreeBmpCpc(BmpLock, true, 1);
+			SauveImage.SauveScr(fileName + "1.SCR", BitmapCpc, main, Main.PackMethode.None, Main.OutputFormat.Binary, param);
 			main.SetInfo("Sauvegarde des deux images CPC ok.");
 			Cpc.modeVirtuel = mode;
 		}
@@ -805,7 +804,7 @@ namespace ConvImgCpc {
 			Label colorClick = sender as Label;
 			int pen = colorClick.Tag != null ? (int)colorClick.Tag : 0;
 			if (!modeEdition.Checked) {
-				EditColor ed = new EditColor(main, pen, Cpc.Palette[pen], bitmapCpc.GetColorPal(pen).GetColorArgb, Cpc.cpcPlus);
+				EditColor ed = new EditColor(main, pen, Cpc.Palette[pen], BitmapCpc.GetColorPal(pen).GetColorArgb, Cpc.cpcPlus);
 				ed.ShowDialog(this);
 				if (ed.isValide) {
 					Cpc.Palette[pen] = ed.ValColor;
@@ -819,7 +818,7 @@ namespace ConvImgCpc {
 				if (editToolMode != EditTool.Draw && editToolMode != EditTool.Fill)
 					rbDraw.Checked = true;
 
-				RvbColor col = bitmapCpc.GetColorPal(pen);
+				RvbColor col = BitmapCpc.GetColorPal(pen);
 				if (e.Button == MouseButtons.Left) {
 					drawCol = pen;
 					drawColor.BackColor = Color.FromArgb(col.r, col.v, col.b);
@@ -845,7 +844,7 @@ namespace ConvImgCpc {
 		private void UpdatePalette() {
 			int maxPen = Cpc.MaxPen(Cpc.yEgx ^ 2);
 			for (int i = 0; i < 16; i++) {
-				RvbColor col = bitmapCpc.GetColorPal(i);
+				RvbColor col = BitmapCpc.GetColorPal(i);
 				lblColors[i].BackColor = Color.FromArgb(col.GetColorArgb);
 				lblColors[i].ForeColor = (col.r * 9798 + col.v * 19235 + col.b * 3735) > 0x400000 ? Color.Black : Color.White;
 				lockColors[i].Visible = lblColors[i].Visible = lblUsedColors[i].Visible = main.param.disableState[i] == 0 && i < maxPen;

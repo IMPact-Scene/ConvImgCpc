@@ -3,15 +3,15 @@ using System.Windows.Forms;
 
 namespace ConvImgCpc {
 	public partial class EditColor : Form {
-		private Label[] colors = new Label[27];
-		private Label lblValColor = new Label();
-		private TextBox[] tabVal = new TextBox[3];
-		private TrackBar[] tabTrack = new TrackBar[3];
-		private Label[] tabLabel = new Label[3];
+		private readonly Label[] colors = new Label[27];
+		private readonly Label lblValColor = new Label();
+		private readonly TextBox[] tabVal = new TextBox[3];
+		private readonly TrackBar[] tabTrack = new TrackBar[3];
+		private readonly Label[] tabLabel = new Label[3];
+		private readonly int numColor;
 		private int valColor;
 		public int ValColor { get { return valColor; } }
 		public bool isValide;
-		private int numColor;
 
 		public EditColor(Main m, int numC, int val, int rgbColor, bool cpcPlus) {
 			InitializeComponent();

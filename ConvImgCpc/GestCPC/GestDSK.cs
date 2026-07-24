@@ -17,7 +17,7 @@ namespace ConvImgCpc {
 		public byte[][][] Data = new byte[MAX_TRACKS][][];
 		public byte[] Bitmap = new byte[256];
 		public enum DskError { ERR_NO_ERR = 0, ERR_NO_DIRENTRY, ERR_NO_BLOCK, ERR_FILE_EXIST };
-		private Main main;
+		private readonly Main main;
 
 		public GestDSK(Main m) {
 			main = m; FormatDsk();

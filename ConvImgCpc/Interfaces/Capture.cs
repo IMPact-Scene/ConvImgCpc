@@ -3,12 +3,12 @@ using System.Windows.Forms;
 
 namespace ConvImgCpc {
 	public partial class Capture : Form {
+		private readonly DirectBitmap bmp = new DirectBitmap(2048, 2048);
+		private readonly Main main;
+		private readonly ImageCpc imgCpc;
 		private int captSizeX = 1, captSizeY = 1;
 		public int CaptSizeX { get { return captSizeX; } }
 		public int CaptSizeY { get { return captSizeY; } }
-		private DirectBitmap bmp = new DirectBitmap(2048, 2048);
-		private Main main;
-		private ImageCpc imgCpc;
 
 		public Capture(Main m, ImageCpc i) {
 			InitializeComponent();

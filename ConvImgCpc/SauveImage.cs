@@ -15,7 +15,7 @@ namespace ConvImgCpc {
 		*/
 
 		#region Gestion du code asm à ajouter pour le décompactage et l'affichage
-		static byte[] CodeStd = {  // Routine à mettre en #C7D0
+		static readonly byte[] CodeStd = {  // Routine à mettre en #C7D0
 			0x3A, 0xD0, 0xD7,			//				LD		A,(#D7D0)
 			0xCD, 0x1C, 0xBD,			//				CALL	#BD1C
 			0x21, 0xD1, 0xD7,			//				LD		HL, #D7D1
@@ -38,7 +38,7 @@ namespace ConvImgCpc {
 			0xC3, 0x18, 0xBB,			//				JP		#BB18
 			};
 
-		static byte[] CodeP0 = {
+		static readonly byte[] CodeP0 = {
 			0xF3,						//				DI
 			0x01, 0x11, 0xBC,			//				LD		BC,#BC11
 			0x21, 0xD0, 0xDF,			//				LD		HL,#DFD0
@@ -63,7 +63,7 @@ namespace ConvImgCpc {
 			0xC9						//				RET
 			};
 
-		static byte[] CodeP1 = {
+		static readonly byte[] CodeP1 = {
 			0x01, 0x0E, 0xF4,			//WaitKey:		LD		BC,#F40E
 			0xED, 0x49,					//				OUT		(C),C
 			0x01, 0xC0, 0xF6,			//				LD		BC,#F6C0
@@ -85,9 +85,9 @@ namespace ConvImgCpc {
 			};
 
 		// Unlock ASIC
-		static byte[] CodeP3 = { 0xFF, 0x00, 0xFF, 0x77, 0xB3, 0x51, 0xA8, 0xD4, 0x62, 0x39, 0x9C, 0x46, 0x2B, 0x15, 0x8A, 0xCD, 0xEE };
+		static readonly byte[] CodeP3 = { 0xFF, 0x00, 0xFF, 0x77, 0xB3, 0x51, 0xA8, 0xD4, 0x62, 0x39, 0x9C, 0x46, 0x2B, 0x15, 0x8A, 0xCD, 0xEE };
 
-		static byte[] CodeOv = {
+		static readonly byte[] CodeOv = {
 			0x21, 0x47, 0x08,			//				LD		HL,#847
 			0xCD, 0x36, 0x08,			//				CALL	SetRegs
 			0x3A, 0x00, 0x08,			//				LD		A,(#0800)
@@ -125,7 +125,7 @@ namespace ConvImgCpc {
 			0x07, 0x1E, 0x0C, 0x30, 0x00
 			};
 
-		static byte[] CodeOvP = {
+		static readonly byte[] CodeOvP = {
 			0xF3,						//				DI
 			0x01, 0x11, 0xBC,			//				LD		BC,#BC11
 			0x21, 0x86, 0x08,			//				LD		HL,#0886
@@ -183,7 +183,7 @@ namespace ConvImgCpc {
 			0x30
 			};
 
-		static byte[] codeEgx0 = {
+		static readonly byte[] codeEgx0 = {
 			0x21, 0x00, 0x20,			//				LD		HL,#2000
 			0x2B,						//Wait0:		DEC		HL
 			0x7C,						//				LD		A,H
@@ -214,7 +214,7 @@ namespace ConvImgCpc {
 			0xC9						//				RET
 		};
 
-		static byte[] codeEgx1 = {
+		static readonly byte[] codeEgx1 = {
 			0x16, 0x45,					//				LD		D,#45
 			0x01, 0x0E, 0xF4,			//WaitKey1:		LD		BC,#F40E
 			0xED, 0x49,					//				OUT		(C),C
@@ -240,7 +240,7 @@ namespace ConvImgCpc {
 			0xC9						//WaitKey2:		RET
 		};
 
-		static byte[] codeDepack = {
+		static readonly byte[] codeDepack = {
 			0x21, 0x00, 0x00,			//				LD		HL,Source
 			0x11, 0x00, 0x00,			//				LD		DE,Dest
 			0x7E,						//DepkLzw:		LD		A,(HL)
@@ -342,7 +342,7 @@ namespace ConvImgCpc {
 			0x18, 0xA8,					//				JR		CopyBytes2
 			};
 
-		static byte[] codeDZX0 = {
+		static readonly byte[] codeDZX0 = {
 			0x21, 0x00, 0x00,			//				LD		HL,Source
 			0x11, 0x00, 0x00,			//				LD		DE,Dest
 			0x01, 0xFF, 0xFF,			//				LD		BC,#FFFF
@@ -393,7 +393,7 @@ namespace ConvImgCpc {
 			0x18, 0xF2					//				JR	dzx0s_elias_loop
 		};
 
-		static byte[] codeDZX0_V2 = {
+		static readonly byte[] codeDZX0_V2 = {
 			0x21, 0x00, 0x00,			//				LD		HL,Source
 			0x11, 0x00, 0x00,			//				LD		DE,Dest
 			0x01, 0xFF, 0xFF,			//				LD		BC,#FFFF
@@ -441,7 +441,7 @@ namespace ConvImgCpc {
 			0x18, 0xF2					//				JR	dzx0s_elias_loop
 		};
 
-		static byte[] codeDZX1 = {
+		static readonly byte[] codeDZX1 = {
 			0x21, 0x00, 0x00,			//				LD		HL,Source
 			0x11, 0x00, 0x00,			//				LD		DE,Dest
 			0x01, 0xFF, 0xFF,			//				LD		BC,#FFFF
@@ -491,7 +491,7 @@ namespace ConvImgCpc {
 		};
 		#endregion
 
-		static byte[] ModePal = new byte[48];
+		static private readonly byte[] ModePal = new byte[48];
 
 		static private void Poke16(byte[] tabMem, int offset, short value) {
 			tabMem[offset] = (byte)(value & 0xFF);

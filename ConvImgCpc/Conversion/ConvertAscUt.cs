@@ -9,7 +9,7 @@ namespace ConvImgCpc {
 				for (int x = 0; x < Cpc.TailleX; x += 8) {
 					int choix = 0, oldDist = 0x7FFFFFFF;
 					for (int i = 0; i < 16; i++) {
-						int dist = 0, r1 = 0, v1 = 0, b1 = 0, r2 = 0, v2 = 0, b2 = 0;
+						int dist, r1 = 0, v1 = 0, b1 = 0, r2 = 0, v2 = 0, b2 = 0;
 						for (int ym = 0; ym < 4; ym++) {
 							for (int xm = 0; xm < 4; xm++) {
 								RvbColor pix = source.GetPixelColor(x + (xm << 1), y + (ym << 1));
@@ -51,7 +51,7 @@ namespace ConvImgCpc {
 							int oldDist = 0x7FFFFFFF;
 							int choix = 0;
 							for (int i = 0; i < 4; i++) {
-								RvbColor c = dest.bitmapCpc.GetColorPal(i);
+								RvbColor c = dest.BitmapCpc.GetColorPal(i);
 								int dist = (c.r - pix.r) * (c.r - pix.r) * prm.coefR + (c.v - pix.v) * (c.v - pix.v) * prm.coefV + (c.b - pix.b) * (c.b - pix.b) * prm.coefB;
 								if (dist < oldDist) {
 									choix = i;

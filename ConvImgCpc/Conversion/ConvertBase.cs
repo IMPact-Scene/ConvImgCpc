@@ -4,8 +4,8 @@ namespace ConvImgCpc {
 	public static partial class Conversion {
 		public enum Distance { DISTANCE_SUP = 0, DISTANCE_EUCLIDE = 1, DISTANCE_MANHATTAN = 2 };
 
-		static private int[,] coulTrouvee = new int[4096, 272];
-		static private byte[] tblContrast = new byte[256];
+		static private readonly int[,] coulTrouvee = new int[4096, 272];
+		static private readonly byte[] tblContrast = new byte[256];
 		static public Niveau[] niveaux;
 
 		static byte MinMaxByte(double value) {
@@ -353,15 +353,15 @@ namespace ConvImgCpc {
 			// Mode X ou Mode Split ?
 			if (Cpc.modeVirtuel == 5 || Cpc.modeVirtuel == 6) {
 				if (Cpc.modeVirtuel == 5)
-					colSplit = RechercheCMaxModeX(dest.colMode5, MemoLockState, Cpc.TailleY, prm);
+					colSplit = RechercheCMaxModeX(Cpc.colMode5, MemoLockState, Cpc.TailleY, prm);
 				else {
-					colSplit = RechercheCMaxModeSplit(dest.colMode5, MemoLockState, Cpc.TailleY, prm);
+					colSplit = RechercheCMaxModeSplit(Cpc.colMode5, MemoLockState, Cpc.TailleY, prm);
 					maxPen = 9;
 				}
 				// réduit l'image à maxPen couleurs.
 				for (int y = 0; y < Cpc.TailleY >> 1; y++)
 					for (i = 0; i < maxPen; i++)
-						tabCol[i, y] = Cpc.GetColor(dest.colMode5[y, i]);
+						tabCol[i, y] = Cpc.GetColor(Cpc.colMode5[y, i]);
 			}
 			else {  // Mode standard CPC ou utilisation de gros pixels trames
 				RechercheCMax(maxPen, MemoLockState, prm);
@@ -369,7 +369,7 @@ namespace ConvImgCpc {
 				for (int y = 0; y < Cpc.TailleY; y += 2) {
 					maxPen = Cpc.MaxPen(y);
 					for (i = 0; i < maxPen; i++)
-						tabCol[i, y >> 1] = dest.bitmapCpc.GetColorPal(i);
+						tabCol[i, y >> 1] = dest.BitmapCpc.GetColorPal(i);
 				}
 			}
 			switch (Cpc.modeVirtuel) {
@@ -427,7 +427,7 @@ namespace ConvImgCpc {
 					dest.main.SetInfo("Couleurs générées avec split : " + colSplit);
 			}
 
-			dest.bitmapCpc.isCalc = true;
+			dest.BitmapCpc.isCalc = true;
 			return nbCol;
 		}
 

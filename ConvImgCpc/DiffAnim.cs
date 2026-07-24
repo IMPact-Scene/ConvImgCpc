@@ -4,7 +4,7 @@ using System.IO;
 
 namespace ConvImgCpc {
 	public class DiffAnim {
-		List<DeltaDiff> delta = new List<DeltaDiff>();
+		private readonly List<DeltaDiff> delta = new List<DeltaDiff>();
 		int lastAdr;
 
 		public DiffAnim() {

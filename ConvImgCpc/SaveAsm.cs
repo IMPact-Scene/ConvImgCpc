@@ -110,11 +110,8 @@ namespace ConvImgCpc {
 
 				case Main.PackMethode.ZX0:
 				case Main.PackMethode.ZX0Ovs:
-					GenereDZX0(sw, jumpLabel);
-					break;
-
 				case Main.PackMethode.ZX0_V2:
-					GenereDZX0_V2(sw, jumpLabel);
+					GenereDZX0(sw, pkMethode != Main.PackMethode.ZX0, jumpLabel);
 					break;
 
 				case Main.PackMethode.ZX1:
@@ -123,7 +120,7 @@ namespace ConvImgCpc {
 			}
 		}
 
-		static private void GenereDZX0(StreamWriter sw, string jumpLabel = null) {
+		static private void GenereDZX0(StreamWriter sw, bool v2, string jumpLabel) {
 			sw.WriteLine("; Decompactage");
 			sw.WriteLine("Depack");
 			sw.WriteLine("	ld	bc,#ffff			; preserve default offset 1");
@@ -146,14 +143,24 @@ namespace ConvImgCpc {
 			sw.WriteLine("	add	a,a					; copy from literals or new offset?");
 			sw.WriteLine("	jr	nc,dzx0s_literals");
 			sw.WriteLine("dzx0s_new_offset");
-			sw.WriteLine("	call	dzx0s_elias		; obtain offset MSB");
-			sw.WriteLine("	ld b,a");
-			sw.WriteLine("	pop	af					; discard last offset");
-			sw.WriteLine("	xor	a					; adjust for negative offset");
-			sw.WriteLine("	sub	c");
+			if (v2) {
+				sw.WriteLine("	pop	bc					;discard last offset");
+				sw.WriteLine("	ld	c,#fe				; prepare negative offset");
+				sw.WriteLine("	call dzx0s_elias_loop	;obtain offset MSB");
+				sw.WriteLine("	inc	c");
+			}
+			else {
+				sw.WriteLine("	call	dzx0s_elias		; obtain offset MSB");
+				sw.WriteLine("	ld b,a");
+				sw.WriteLine("	pop	af					; discard last offset");
+				sw.WriteLine("	xor	a					; adjust for negative offset");
+				sw.WriteLine("	sub	c");
+			}
 			sw.WriteLine((jumpLabel != null ? ("	JP	Z," + jumpLabel) : "	RET	Z") + "		; Plus d'octets à traiter = fini" + Environment.NewLine);
-			sw.WriteLine("	ld	c,a");
-			sw.WriteLine("	ld	a,b");
+			if (!v2) {
+				sw.WriteLine("	ld	c,a");
+				sw.WriteLine("	ld	a,b");
+			}
 			sw.WriteLine("	ld	b,c");
 			sw.WriteLine("	ld	c,(hl)				; obtain offset LSB");
 			sw.WriteLine("	inc	hl");
@@ -181,62 +188,7 @@ namespace ConvImgCpc {
 			sw.WriteLine("	jr	dzx0s_elias_loop");
 		}
 
-		static private void GenereDZX0_V2(StreamWriter sw, string jumpLabel = null) {
-			sw.WriteLine("; Decompactage");
-			sw.WriteLine("Depack");
-			sw.WriteLine("ld bc,#ffff				; preserve default offset 1");
-			sw.WriteLine("	push	bc");
-			sw.WriteLine("	inc	bc");
-			sw.WriteLine("	ld	a,#80");
-			sw.WriteLine("dzx0s_literals");
-			sw.WriteLine("	call	dzx0s_elias		;obtain length");
-			sw.WriteLine("	ldir					;copy literals");
-			sw.WriteLine("	add	a,a					;copy from last offset or new offset?");
-			sw.WriteLine("	jr	c,dzx0s_new_offset");
-			sw.WriteLine("	call	dzx0s_elias		;obtain length");
-			sw.WriteLine("dzx0s_copy");
-			sw.WriteLine("	ex	(sp),hl				;preserve source, restore offset");
-			sw.WriteLine("	push	hl				;preserve offset");
-			sw.WriteLine("	add	hl,de				;calculate destination -offset");
-			sw.WriteLine("	ldir					;copy from offset");
-			sw.WriteLine("	pop	hl					;restore offset");
-			sw.WriteLine("	ex	(sp),hl				;preserve offset, restore source");
-			sw.WriteLine("	add	a,a					;copy from literals or new offset?");
-			sw.WriteLine("	jr	nc,dzx0s_literals");
-			sw.WriteLine("dzx0s_new_offset");
-			sw.WriteLine("	pop	bc					;discard last offset");
-			sw.WriteLine("	ld	c,#fe				; prepare negative offset");
-			sw.WriteLine("	call dzx0s_elias_loop	;obtain offset MSB");
-			sw.WriteLine("	inc	c");
-			sw.WriteLine((jumpLabel != null ? ("	JP	Z," + jumpLabel) : "	RET	Z") + "		; Plus d'octets à traiter = fini" + Environment.NewLine);
-			sw.WriteLine("	ld	b,c");
-			sw.WriteLine("	ld	c,(hl)				;obtain offset LSB");
-			sw.WriteLine("	inc	hl");
-			sw.WriteLine("	rr	b					;last offset bit becomes first length bit");
-			sw.WriteLine("	rr	c");
-			sw.WriteLine("	push	bc				;preserve new offset");
-			sw.WriteLine("	ld	bc,1				;obtain length");
-			sw.WriteLine("	call	nc,dzx0s_elias_backtrack");
-			sw.WriteLine("	inc	bc");
-			sw.WriteLine("	jr	dzx0s_copy");
-			sw.WriteLine("dzx0s_elias");
-			sw.WriteLine("	inc	c					;interlaced Elias gamma coding");
-			sw.WriteLine("dzx0s_elias_loop");
-			sw.WriteLine("	add	a,a");
-			sw.WriteLine("	jr	nz,dzx0s_elias_skip");
-			sw.WriteLine("	ld	a,(hl)				 ;load another group of 8 bits");
-			sw.WriteLine("	inc	hl");
-			sw.WriteLine("	rla");
-			sw.WriteLine("dzx0s_elias_skip");
-			sw.WriteLine("	ret	c");
-			sw.WriteLine("dzx0s_elias_backtrack");
-			sw.WriteLine("	add	a,a");
-			sw.WriteLine("	rl	c");
-			sw.WriteLine("	rl	b");
-			sw.WriteLine("	jr	dzx0s_elias_loop");
-		}
-
-		static private void GenereDZX1(StreamWriter sw, string jumpLabel = null) {
+		static private void GenereDZX1(StreamWriter sw, string jumpLabel) {
 			sw.WriteLine("; Decompactage");
 			sw.WriteLine("Depack:");
 			sw.WriteLine("	ld	bc,#ffff			; preserve default offset 1");
@@ -407,7 +359,7 @@ namespace ConvImgCpc {
 			sw.WriteLine("	JR	CopyBytes2" + Environment.NewLine);
 		}
 
-		static private void GenereFormatEcran(StreamWriter sw) {
+		static private void GenereFormatEcran(StreamWriter sw, bool noChangeAdr = false) {
 			if (Cpc.NbCol != 80) {
 				sw.WriteLine("	LD	HL,#" + ((Cpc.NbCol + 1) >> 1).ToString("X2") + (26 + (Cpc.NbCol >> 2)).ToString("X2"));
 				sw.WriteLine("	LD	BC,#BC01");
@@ -432,7 +384,7 @@ namespace ConvImgCpc {
 				sw.WriteLine("	INC	B");
 				sw.WriteLine("	OUT	(C),L");
 			}
-			if (Cpc.NbLig * Cpc.NbCol > 0x4000) {
+			if (Cpc.NbLig * Cpc.NbCol > 0x4000 && !noChangeAdr) {
 				sw.WriteLine("	LD	BC,#BC0C");
 				sw.WriteLine("	OUT	(C),C");
 				sw.WriteLine("	INC	B");
@@ -817,7 +769,7 @@ namespace ConvImgCpc {
 			}
 			else
 				if (frameO)
-				sw.WriteLine("	LD	HL,Buffer");
+					sw.WriteLine("	LD	HL,Buffer");
 
 			if (!frameD) {
 				sw.WriteLine("	LD	BC," + (overscan ? "#0200" : "#C000"));
@@ -1177,6 +1129,7 @@ namespace ConvImgCpc {
 		}
 
 		static public void GenereAfficheModeX(StreamWriter sw, int[,] colMode5, bool isOverscan, Main.PackMethode pkMethode, string labelMedia) {
+			GenereFormatEcran(sw, true);
 			sw.WriteLine("	LD	HL," + labelMedia);
 			sw.WriteLine("	LD	DE,#" + (isOverscan ? "0200" : "C000"));
 			sw.WriteLine("	CALL	Depack");
@@ -1230,8 +1183,8 @@ namespace ConvImgCpc {
 			sw.WriteLine("	OUT	(C),C			; Sélection pen 3");
 			sw.WriteLine("	OUTI				; Mise à jour couleur");
 			sw.WriteLine("	LD	B,8");
-			sw.WriteLine("	NEG");
 			sw.WriteLine("	DJNZ	$");
+			sw.WriteLine("	CP	(HL)");
 			sw.WriteLine("	DEC	DE");
 			sw.WriteLine("	LD	A,D");
 			sw.WriteLine("	OR	E");

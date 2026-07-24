@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 namespace ConvImgCpc {
 	public class DirectBitmap : IDisposable {
 		public Bitmap Bitmap { get; private set; }
-		public uint[] tabBits { get; private set; }
+		public uint[] TabBits { get; private set; }
 		public bool Disposed { get; private set; }
 		public int Height { get; private set; }
 		public int Width { get; private set; }
@@ -24,15 +24,18 @@ namespace ConvImgCpc {
 		}
 
 		public void CopyBits(DirectBitmap source) {
-			Array.Copy(source.tabBits, tabBits, tabBits.Length);
+			Array.Copy(source.TabBits, TabBits, TabBits.Length);
 		}
 
 		private void CreateBitmap(string fileName) {
-			Bitmap tmp = new Bitmap(fileName);
+			CreateBitmap(new Bitmap(fileName));
+		}
+
+		private void CreateBitmap(Bitmap tmp) {
 			Width = tmp.Width;
 			Height = tmp.Height;
-			tabBits = new uint[tmp.Width * tmp.Height];
-			BitsHandle = GCHandle.Alloc(tabBits, GCHandleType.Pinned);
+			TabBits = new uint[tmp.Width * tmp.Height];
+			BitsHandle = GCHandle.Alloc(TabBits, GCHandleType.Pinned);
 			for (int x = 0; x < tmp.Width; x++)
 				for (int y = 0; y < tmp.Height; y++) {
 					Color c = tmp.GetPixel(x, y);
@@ -45,27 +48,27 @@ namespace ConvImgCpc {
 		private void CreateBitmap(int width, int height) {
 			Width = width;
 			Height = height;
-			tabBits = new uint[width * height];
-			BitsHandle = GCHandle.Alloc(tabBits, GCHandleType.Pinned);
+			TabBits = new uint[width * height];
+			BitsHandle = GCHandle.Alloc(TabBits, GCHandleType.Pinned);
 			Bitmap = new Bitmap(width, height, width * 4, PixelFormat.Format32bppRgb, BitsHandle.AddrOfPinnedObject());
 		}
 
 		public void SetPixel(int x, int y, int c) {
 			if (y < Height)
-				tabBits[x + (y * Width)] = (uint)c | 0xFF000000;
+				TabBits[x + (y * Width)] = (uint)c | 0xFF000000;
 		}
 
 		public void SetPixel(int x, int y, RvbColor color) {
 			if (y < Height)
-				tabBits[x + (y * Width)] = (uint)color.GetColorArgb | 0xFF000000;
+				TabBits[x + (y * Width)] = (uint)color.GetColorArgb | 0xFF000000;
 		}
 
 		public int GetPixel(int x, int y) {
-			return x < Width && y < Height ? (int)(tabBits[y < Height ? (x + (y * Width)) : 0] & 0xFFFFFF) : 0;
+			return x < Width && y < Height ? (int)(TabBits[y < Height ? (x + (y * Width)) : 0] & 0xFFFFFF) : 0;
 		}
 
 		public RvbColor GetPixelColor(int x, int y) {
-			return new RvbColor((int)tabBits[y < Height ? (x + (y * Width)) : 0]);
+			return new RvbColor((int)TabBits[y < Height ? (x + (y * Width)) : 0]);
 		}
 
 		public void SetHorLineDouble(int pixelX, int pixelY, int lineLength, int c) {
@@ -73,9 +76,9 @@ namespace ConvImgCpc {
 			int index = pixelX + (pixelY * Width);
 			for (; lineLength-- > 0;) {
 				if (index < Length) {
-					tabBits[index] = color;
+					TabBits[index] = color;
 					if (index + Width < Length)
-						tabBits[index + Width] = color;
+						TabBits[index + Width] = color;
 				}
 				index++;
 			}

@@ -5,8 +5,8 @@ using System.Windows.Forms;
 
 namespace ConvImgCpc {
 	public partial class ImageCpc : Form {
+		private readonly UndoRedo undo = new UndoRedo();
 		private Rendu fenetreRendu;
-		private UndoRedo undo = new UndoRedo();
 		private int offsetX = 0, offsetY = 0;
 		private int zoom = 1, oldZoom = 1;
 		private bool setZoomRect = false, unZoom = false;
@@ -30,9 +30,9 @@ namespace ConvImgCpc {
 			int yReel = e != null ? (offsetY + (e.Y / (zoom * (chkX2.Checked ? 2 : 1)))) & -incY : 0;
 			int tx = Cpc.CalcTx(yReel);
 			int penDraw = drawCol % (Cpc.modeVirtuel == 6 || Cpc.modeVirtuel == 11 ? 16 : 1 << tx);
-			RvbColor colDraw = bitmapCpc.GetColorPal(penDraw);
+			RvbColor colDraw = BitmapCpc.GetColorPal(penDraw);
 			int penUndraw = undrawCol % (Cpc.modeVirtuel == 6 || Cpc.modeVirtuel == 11 ? 16 : 1 << tx);
-			RvbColor colUndraw = bitmapCpc.GetColorPal(penUndraw);
+			RvbColor colUndraw = BitmapCpc.GetColorPal(penUndraw);
 			drawColor.BackColor = Color.FromArgb(colDraw.GetColorArgb);
 			drawColor.Text = penDraw.ToString();
 			drawColor.ForeColor = (colDraw.r * 9798 + colDraw.v * 19235 + colDraw.b * 3735) > 0x400000 ? Color.Black : Color.White;
@@ -278,7 +278,7 @@ namespace ConvImgCpc {
 				int tx = Cpc.CalcTx(yReel);
 				int xReel = (offsetX + (e.X / (zoom * (chkX2.Checked ? 2 : 1)))) & -tx;
 				if (xReel >= 0 && yReel >= 0 && xReel < Cpc.TailleX && yReel < Cpc.TailleY) {
-					int fill = bitmapCpc.GetColorPal(e.Button == MouseButtons.Left ? drawCol : undrawCol % (Cpc.modeVirtuel == 6 || Cpc.modeVirtuel == 11 ? 16 : 1 << tx)).GetColorArgb;
+					int fill = BitmapCpc.GetColorPal(e.Button == MouseButtons.Left ? drawCol : undrawCol % (Cpc.modeVirtuel == 6 || Cpc.modeVirtuel == 11 ? 16 : 1 << tx)).GetColorArgb;
 					DoFill(xReel, yReel, tx, fill);
 					Render(true);
 				}
@@ -286,10 +286,8 @@ namespace ConvImgCpc {
 		}
 
 		private void ReleaseMotif() {
-			if (imgCopy != null) {
-				imgCopy.Dispose();
-				imgCopy = null;
-			}
+			imgCopy?.Dispose();
+			imgCopy = null;
 			if (imgMotif != null) {
 				imgMotif.Dispose();
 				imgMotif = null;

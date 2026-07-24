@@ -2,28 +2,28 @@
 
 namespace ConvImgCpc {
 	static public class Dither {
-		static double[,] floyd =	{	{7, 3},
+		static readonly double[,] floyd =	{	{7, 3},
 										{5, 1}};
-		static double[,] bayer1 =	{	{1, 3},
+		static readonly double[,] bayer1 =	{	{1, 3},
 										{4, 2 }};
-		static double[,] bayer2 =	{	{0, 12, 3, 15},
+		static readonly double[,] bayer2 =	{	{0, 12, 3, 15},
 										{8, 4, 11, 7},
 										{2, 14, 1, 13},
 										{10, 6, 9, 5}};
-		static double[,] bayer3 =	{	{1, 9, 3, 11 },
+		static readonly double[,] bayer3 =	{	{1, 9, 3, 11 },
 										{13, 5, 15, 7},
 										{4, 12, 2, 10},
 										{16, 8, 14, 6}};
-		static double[,] ord1 =		{	{1, 3},
+		static readonly double[,] ord1 =		{	{1, 3},
 										{2, 4}};
-		static double[,] ord2 =		{	{8, 3, 4},
+		static readonly double[,] ord2 =		{	{8, 3, 4},
 										{6, 1, 2},
 										{7, 5, 9}};
-		static double[,] ord3 =		{	{0, 8, 2, 10},
+		static readonly double[,] ord3 =		{	{0, 8, 2, 10},
 										{12, 4, 14, 6},
 										{3, 11, 1, 9},
 										{15, 7, 13, 5}};
-		static double[,] ord4 =		{	{0,48,12,60, 3,51,15,63},
+		static readonly double[,] ord4 =		{	{0,48,12,60, 3,51,15,63},
 										{32,16,44,28,35,19,47,31},
 										{8,56, 4,52,11,59, 7,55},
 										{40,24,36,20,43,27,39,23},
@@ -31,55 +31,55 @@ namespace ConvImgCpc {
 										{34,18,46,30,33,17,45,29},
 										{10,58, 6,54, 9,57, 5,53},
 										{42,26,38,22,41,25,37,21 }};
-		static double[,] zigzag1 = {	{0, 4, 0},
+		static readonly double[,] zigzag1 = {	{0, 4, 0},
 										{3, 0, 1 },
 										{0, 2, 0}};
-		static double[,] zigzag2 = {	{0, 4, 2, 0},
+		static readonly double[,] zigzag2 = {	{0, 4, 2, 0},
 										{6, 0, 5, 3 },
 										{0, 7, 1, 0}};
-		static double[,] zigzag3 = {	{0, 0, 0, 7, 0},
+		static readonly double[,] zigzag3 = {	{0, 0, 0, 7, 0},
 										{0, 2, 6, 9, 8 },
 										{3, 0, 1, 5, 0},
 										{0, 4, 0, 0, 0}};
 
-		static double[,] test0 =	{	{1.0, 16.0, 1.0, 16.0},
+		static readonly double[,] test0 =	{	{1.0, 16.0, 1.0, 16.0},
 										{16.0, 1.0, 16.0, 1.0},
 										{1, 16, 1, 16},
 										{16, 1, 16, 1}};
 
-		static double[,] test1 =	{	{1, 4, 1, 4},
+		static readonly double[,] test1 =	{	{1, 4, 1, 4},
 										{4, 1, 4, 1},
 										{1, 4, 1, 4},
 										{4, 1, 4, 1}};
 
-		static double[,] test2 =	{	{8, 1, 8, 1},
+		static readonly double[,] test2 =	{	{8, 1, 8, 1},
 										{1, 8, 1, 8},
 										{8, 1, 8, 1},
 										{1, 8, 1, 8}};
 
-		static double[,] test3 =	{	{8, 16, 16, 8},
+		static readonly double[,] test3 =	{	{8, 16, 16, 8},
 										{16, 8, 8, 16}};
 
-		static double[,] test4 =	{	{0, 3 },
+		static readonly double[,] test4 =	{	{0, 3 },
 										{0, 5 },
 										{7, 1 }};
 
-		static double[,] test5 =	{	{0, 0, 7 },
+		static readonly double[,] test5 =	{	{0, 0, 7 },
 										{3, 5, 1 }};
 
-		static double[,] test6 =	{	{1, 9, 4, 7 },
+		static readonly double[,] test6 =	{	{1, 9, 4, 7 },
 										{4, 7, 1, 9 },
 										{1, 9, 4, 7 },
 										{4, 7, 1, 9}};
 
-		static double[,] test7 =	{	{12, 11, 0 },
+		static readonly double[,] test7 =	{	{12, 11, 0 },
 										{13, 10, 19 },
 										{11, 13, 0}};
 
-		static double[,] test8 =	{	{3, 7, 6, 2},
+		static readonly double[,] test8 =	{	{3, 7, 6, 2},
 										{5, 4, 1, 0}};
 
-		static double[,] test9 =	{	{1, 5, 10, 14},
+		static readonly double[,] test9 =	{	{1, 5, 10, 14},
 										{3, 7, 8, 12},
 										{13, 9, 6, 2},
 										{15, 11, 4, 0}};

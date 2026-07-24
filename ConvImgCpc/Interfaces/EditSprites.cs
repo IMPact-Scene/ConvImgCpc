@@ -11,14 +11,16 @@ namespace ConvImgCpc {
 	public partial class EditSprites : Form {
 		private int numSprite = 0, numBank = 0, selSprite = -1;
 		private byte penLeft = 1;
-		private DirectBitmap bmpSprite, bmpAllSprites, bmpTest;
-		private Main main;
-		private Label[] lblColors = new Label[16];
-		private Label[] lblUsedColors = new Label[16];
-		private Main.PackMethode pkMethod;
-		private byte[,] tempSprite = new byte[256, 16];
-		private Label lblRectSelColor = new Label();
-		private Label lblRectSelSprite = new Label();
+		private readonly DirectBitmap bmpSprite, bmpAllSprites, bmpTest;
+		private readonly Main main;
+		private readonly Label[] lblColors = new Label[16];
+		private readonly Label[] lblUsedColors = new Label[16];
+		private readonly Main.PackMethode pkMethod;
+		private readonly byte[,] tempSprite = new byte[256, 16];
+		private readonly Label lblRectSelColor = new Label();
+		private readonly Label lblRectSelSprite = new Label();
+		private readonly int[,] posSprites = new int[16, 2];
+		private readonly bool[] spriteEnableTest = new bool[16];
 		private int tickTimer;
 		private int lineStartX = -1, lineStartY = -1;
 		private int oldPosx = -1, oldPosy = -1;
@@ -33,7 +35,7 @@ namespace ConvImgCpc {
 			public IntPtr wParam;
 			public IntPtr lParam;
 			public uint time;
-			public System.Drawing.Point p;
+			public Point p;
 		}
 
 		[DllImport("user32.dll")]
@@ -260,7 +262,8 @@ namespace ConvImgCpc {
 								if (e < 0) {
 									y1++;
 									e += dx;
-								};
+								}
+								;
 							}
 							while (x1++ != x2);
 						}
@@ -588,6 +591,9 @@ namespace ConvImgCpc {
 					bmpTest.SetPixel(x, y, 0);
 
 			if (rbPosSpr.Checked) {
+				for (int s = 0; s < 16; s++)
+					if (spriteEnableTest[s])
+						DrawSpriteTest(bmpTest, s, posSprites[s, 0] * taillex, posSprites[s, 1] * tailley);
 			}
 			else
 				if (rb28sprite.Checked) {
@@ -660,6 +666,9 @@ namespace ConvImgCpc {
 				XorDrawing.DrawXorRectangle(g, (Bitmap)pictTest.Image, oldPosx, oldPosy, oldPosx + taillex, oldPosy + tailley);
 				pictTest.Refresh();
 				DrawSpriteTest(bmpTest, numSprite, oldPosx, oldPosy);
+				posSprites[numSprite, 0] = oldPosx / taillex;
+				posSprites[numSprite, 1] = oldPosy / tailley;
+				spriteEnableTest[numSprite] = true;
 				oldPosx = oldPosy = -1;
 			}
 		}
@@ -826,6 +835,7 @@ namespace ConvImgCpc {
 				}
 				catch (Exception ex) {
 					main.DisplayErreur(main.multilingue.GetString("EditSprites.TxtInfo5"));
+					MessageBox.Show(ex.Message, ex.StackTrace);
 				}
 				Enabled = true;
 			}

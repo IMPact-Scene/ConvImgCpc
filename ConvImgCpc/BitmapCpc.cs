@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Windows.Forms;
 
 namespace ConvImgCpc {
 	public class BitmapCpc : Cpc {
 		private const int maxColsCpc = 96;
 		private const int maxLignesCpc = 272;
 
-		static private byte[] bufTmp = new byte[0x10000];
+		static private readonly byte[] bufTmp = new byte[0x10000];
 		public byte[] bmpCpc = new byte[0x10000];
 		public byte[] imgAscii = new byte[0x1000];
 		public int[] tabMode = new int[272];
@@ -52,7 +53,6 @@ namespace ConvImgCpc {
 
 			return x;
 		}
-
 
 		public void CalcPaletteSplit() {
 			int[] curPal = new int[16];
@@ -121,30 +121,30 @@ namespace ConvImgCpc {
 			else
 				// CPC +, écran standard
 				if (bmpCpc[0x7D0] == 0xF3 && bmpCpc[0x7D1] == 0x01 && bmpCpc[0x7D2] == 0x11 && bmpCpc[0x7D3] == 0xBC) {
-				cpcPlus = true;
-				nbCol = 80;
-				nbLig = 200;
-				SetPalette(bmpCpc, 0x17D0, cpcPlus);
-				Ret = true;
-			}
-			else
+					cpcPlus = true;
+					nbCol = 80;
+					nbLig = 200;
+					SetPalette(bmpCpc, 0x17D0, cpcPlus);
+					Ret = true;
+				}
+				else
 					// CPC OLD, écran overscan
 					if (bmpCpc[0x611] == 0x21 && bmpCpc[0x612] == 0x47 && bmpCpc[0x613] == 0x08 && bmpCpc[0x614] == 0xCD) {
-				cpcPlus = false;
-				nbCol = maxColsCpc;
-				nbLig = maxLignesCpc;
-				SetPalette(bmpCpc, 0x600, cpcPlus);
-				Ret = true;
-			}
-			else
+						cpcPlus = false;
+						nbCol = maxColsCpc;
+						nbLig = maxLignesCpc;
+						SetPalette(bmpCpc, 0x600, cpcPlus);
+						Ret = true;
+					}
+					else
 						// CPC +, écran overscan
 						if (bmpCpc[0x621] == 0xF3 && bmpCpc[0x622] == 0x01 && bmpCpc[0x623] == 0x11 && bmpCpc[0x624] == 0xBC) {
-				cpcPlus = true;
-				nbCol = maxColsCpc;
-				nbLig = maxLignesCpc;
-				SetPalette(bmpCpc, 0x600, cpcPlus);
-				Ret = true;
-			}
+							cpcPlus = true;
+							nbCol = maxColsCpc;
+							nbLig = maxLignesCpc;
+							SetPalette(bmpCpc, 0x600, cpcPlus);
+							Ret = true;
+						}
 			return (Ret);
 		}
 
@@ -185,7 +185,7 @@ namespace ConvImgCpc {
 			}
 		}
 
-		private void DepactPK(Main.PackMethode pkMethode) {
+		private void DepactPK() {
 			byte[] Palette = new byte[0x100];
 
 			// Valeurs par défaut
@@ -208,7 +208,7 @@ namespace ConvImgCpc {
 				for (int i = 0; i < 17; i++)
 					Palette[i] = bmpCpc[i + 4];
 
-			int l = new PackModule().Depack(bmpCpc, Std ? 21 : 4, bufTmp, Main.PackMethode.Standard);
+			int l = new PackModule().Depack(bmpCpc, Std ? 21 : 4, bufTmp);
 			if (Std) {
 				int i = 0;
 				for (int x = 0; x < 80; x++)
@@ -387,7 +387,7 @@ namespace ConvImgCpc {
 				}
 			}
 			if (imgCpc != null) {
-				imgCpc.bitmapCpc.isCalc = true;
+				imgCpc.BitmapCpc.isCalc = true;
 				imgCpc.Render();
 			}
 			return (loc);
@@ -431,41 +431,43 @@ namespace ConvImgCpc {
 			return bmp;
 		}
 
-		public DirectBitmap CreateImageFromCpc(int length, Param par, Main.PackMethode pkMethode, bool isSprite = false, ImageCpc imgCpc = null) {
+		public DirectBitmap CreateImageFromCpc(int length, Param par, bool isSprite = false, ImageCpc imgCpc = null) {
 			if (!isSprite) {
 				if (bmpCpc[0] == 'M' && bmpCpc[1] == 'J' && bmpCpc[2] == 'H')
 					DepactOCP();
 				else
 					if (bmpCpc[0] == 'P' && bmpCpc[1] == 'K' && (bmpCpc[2] == 'O' || bmpCpc[2] == 'V' || bmpCpc[2] == 'S'))
-					DepactPK(pkMethode);
-				else {
-					if (!InitDatas()) {
-						if (length == 16384) {
-							nbCol = 80;
-							nbLig = 200;
-						}
-						else
-							if (length < 31000) {
-							try {
-								int l = new PackModule().Depack(bmpCpc, 0, bufTmp, Main.PackMethode.Standard);
-								Array.Copy(bufTmp, bmpCpc, l);
+						DepactPK();
+					else {
+						if (!InitDatas()) {
+							if (length == 16384) {
+								nbCol = 80;
+								nbLig = 200;
 							}
-							catch (Exception) { }
-							if (!InitDatas()) {
-								cpcPlus = false;
-								nbCol = maxColsCpc;
-								nbLig = maxLignesCpc;
-								SetPalette(bmpCpc, 0x600, cpcPlus);
-							}
-						}
-						else {
-							if (length > 0x4000) {
-								nbCol = maxColsCpc;
-								nbLig = maxLignesCpc;
-							}
+							else
+								if (length < 31000) {
+									try {
+										int l = new PackModule().Depack(bmpCpc, 0, bufTmp);
+										Array.Copy(bufTmp, bmpCpc, l);
+										if (!InitDatas()) {
+											cpcPlus = false;
+											nbCol = maxColsCpc;
+											nbLig = maxLignesCpc;
+											SetPalette(bmpCpc, 0x600, cpcPlus);
+										}
+									}
+									catch (Exception ex) {
+										MessageBox.Show(ex.Message, ex.StackTrace);
+									}
+								}
+								else {
+									if (length > 0x4000) {
+										nbCol = maxColsCpc;
+										nbLig = maxLignesCpc;
+									}
+								}
 						}
 					}
-				}
 			}
 			par.cpcPlus = cpcPlus;
 			return DrawBitmap(nbCol, nbLig, 0, isSprite, imgCpc);

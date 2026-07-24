@@ -38,6 +38,7 @@ namespace ConvImgCpc {
 							new RvbColor( Lum2, Lum2, Lum1),
 							new RvbColor( Lum2, Lum2, Lum2)
 							};
+		static public int[,] colMode5 = new int[272, 16];
 		static public string[] modesVirtuels = {
 										"Mode 0",				// 0
 										"Mode 1",				// 1
@@ -202,7 +203,8 @@ namespace ConvImgCpc {
 			}
 			else {
 				for (pen = 0; pen < 16; pen++) {
-					RvbColor fixedCol = RgbCPC[Palette[pen] != 0xFFFF && Palette[pen] < 27 ? Palette[pen] : 0];
+					int c = modeVirtuel == 5 ? colMode5[y >> 1, pen] : Palette[pen] != 0xFFFF && Palette[pen] < 27 ? Palette[pen] : 0;
+					RvbColor fixedCol = RgbCPC[c < 27 ? c : 0];
 					if (fixedCol.r == col.r && fixedCol.b == col.b && fixedCol.v == col.v)
 						break;
 				}

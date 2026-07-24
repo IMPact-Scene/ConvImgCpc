@@ -9,17 +9,17 @@ using System.Xml.Serialization;
 
 namespace ConvImgCpc {
 	public partial class Main : Form {
+		private readonly Version version = Assembly.GetExecutingAssembly().GetName().Version;
+		private readonly Informations info = new Informations();
+		private readonly ParamInterne paramInterne;
 		public ImageSource imgSrc = new ImageSource();
 		public ImageCpc imgCpc;
 		public Param param = new Param();
 		private MemoryStream imageStream;
-		private Informations info = new Informations();
 		public Animation anim;
-		private ParamInterne paramInterne;
 		public Multilingue multilingue = new Multilingue();
 		public enum PackMethode { None = 0, Standard, ZX0, ZX0_V2, ZX1, ZX0Ovs };
 		public PackMethode pkMethode = PackMethode.None;
-		private Version version = Assembly.GetExecutingAssembly().GetName().Version;
 		public GestDSK dsk;
 		public enum OutputFormat { Binary = 0, Assembler, DSK, SNA };
 		private bool doNotReset = false;
@@ -392,14 +392,14 @@ namespace ConvImgCpc {
 							Array.Copy(tabBytes, posData, tempData, 0, tempData.Length);
 							posData += tempData.Length;
 							BitmapCpc bmp = new BitmapCpc(tempData, width << 3, height << 1);
-							imgSrc.ImportBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, pkMethode, true, imgCpc).Bitmap, i);
+							imgSrc.ImportBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, true, imgCpc).Bitmap, i);
 						}
 					}
 					else
 						if (isScrImp) {
 						BitmapCpc bmp = new BitmapCpc(tabBytes, 0x110);
 						if (singlePicture)
-							imgSrc.ImportBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, pkMethode, false, imgCpc).Bitmap, imgCpc.selImage);
+							imgSrc.ImportBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, false, imgCpc).Bitmap, imgCpc.selImage);
 						else {
 							doNotReset = true;
 							Cpc.modeVirtuel = param.modeVirtuel = mode.SelectedIndex = tabBytes[0x94] - 0x0E;
@@ -418,16 +418,16 @@ namespace ConvImgCpc {
 								for (int i = 0; i < 16; i++)
 									Cpc.Palette[i] = Cpc.CpcVGA.IndexOf((char)tabBytes[0x7E10 + i]);
 							}
-							imgSrc.InitBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, pkMethode, false, imgCpc).Bitmap);
+							imgSrc.InitBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, false, imgCpc).Bitmap);
 						}
 					}
 					else {
 						BitmapCpc bmp = new BitmapCpc(tabBytes, 0x80);
 						if (singlePicture)
-							imgSrc.ImportBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, pkMethode, false, imgCpc).Bitmap, imgCpc.selImage);
+							imgSrc.ImportBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, false, imgCpc).Bitmap, imgCpc.selImage);
 						else {
 							doNotReset = true;
-							imgSrc.InitBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, pkMethode, false, imgCpc).Bitmap);
+							imgSrc.InitBitmap(bmp.CreateImageFromCpc(tabBytes.Length - 0x80, param, false, imgCpc).Bitmap);
 							nbCols.Value = param.nbCols = Cpc.NbCol;
 							Cpc.TailleX = param.nbCols << 3;
 							nbLignes.Value = param.nbLignes = Cpc.NbLig;
@@ -963,7 +963,7 @@ namespace ConvImgCpc {
 		}
 
 		private void BpEditTrame_Click(object sender, EventArgs e) {
-			EditTrameAscii dg = new EditTrameAscii(this, imgSrc, imgCpc, param);
+			EditTrameAscii dg = new EditTrameAscii(this, imgCpc, param);
 			dg.ShowDialog();
 			Convert(false);
 		}

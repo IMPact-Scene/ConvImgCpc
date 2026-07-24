@@ -5,13 +5,13 @@ using System.Xml.Serialization;
 
 namespace ConvImgCpc {
 	public partial class RasterTablePlus : Form {
-		private DirectBitmap bmpImage;
-		private DirectBitmap bmpFond;
+		private readonly DirectBitmap bmpImage;
+		private readonly DirectBitmap bmpFond;
+		private readonly int selColor = -1;
+		private readonly Main main;
 		private RvbColor oldCol = new RvbColor(0);
 		private int newStart = 0, newEnd = 15, lastAddConstat = 0;
-		private int selColor = -1;
 		private Raster raster = new Raster();
-		private Main main;
 
 		public RasterTablePlus(Main m, DirectBitmap bmp) {
 			InitializeComponent();
@@ -32,12 +32,9 @@ namespace ConvImgCpc {
 		}
 
 		public void DrawLines() {
-			if (chkSprites.Checked)
-				main.imgCpc.DrawSpritesHard(pictureBox);
-			else
-				pictureBox.Image = bmpImage.Bitmap;
+			pictureBox.Image = bmpImage.Bitmap;
 
-				txbStart.Text = newStart.ToString();
+			txbStart.Text = newStart.ToString();
 			for (int i = 0; i < 272; i++)
 				for (int x = 0; x < 768; x += 2) {
 					int c = bmpFond.GetPixel(x, i * 2);
@@ -49,6 +46,9 @@ namespace ConvImgCpc {
 			txbLineStart.Text = raster.minLine.ToString();
 			txbLineEnd.Text = raster.maxLine.ToString();
 			bpGenerate.Enabled = raster.minLine < raster.maxLine;
+
+			if (chkSprites.Checked)
+				pictureBox.Image = main.imgCpc.DrawSpritesHard(null, bmpImage.Bitmap);
 
 			pictureBox.Refresh();
 		}

@@ -121,7 +121,7 @@ namespace ConvImgCpc {
 			GM_ADVANCED = 2,
 		}
 
-		private static IntPtr BeginDraw(Bitmap bmp, Graphics graphics, int x1, int y1, int x2, int y2, bool dash, out int oldRop, out IntPtr img, out IntPtr oldpen) {
+		private static IntPtr BeginDraw(Bitmap bmp, Graphics graphics, bool dash, out int oldRop, out IntPtr img, out IntPtr oldpen) {
 			IntPtr gHdc = graphics.GetHdc();
 			IntPtr hdc = CreateCompatibleDC(gHdc);
 			graphics.ReleaseHdc(hdc);
@@ -140,7 +140,7 @@ namespace ConvImgCpc {
 		}
 
 
-		private static void FinishDraw(Bitmap bmp, Graphics graphics, IntPtr hdc, IntPtr oldpen, int oldRop, IntPtr img, bool dash) {
+		private static void FinishDraw(Graphics graphics, IntPtr hdc, IntPtr oldpen, int oldRop, IntPtr img, bool dash) {
 			SetROP2(hdc, oldRop);
 			System.Drawing.Drawing2D.Matrix transform = graphics.Transform;
 			graphics.ResetTransform(); //in case there is transform
@@ -156,22 +156,20 @@ namespace ConvImgCpc {
 		}
 
 		public static void DrawXorLine(Graphics graphics, Bitmap bmp, int x1, int y1, int x2, int y2, bool dash = true) {
-			int oldRop;
-			IntPtr oldpen, img, hdc = BeginDraw(bmp, graphics, x1, y1, x2, y2, dash, out oldRop, out img, out oldpen);
+			IntPtr oldpen, img, hdc = BeginDraw(bmp, graphics, dash, out int oldRop, out img, out oldpen);
 			MoveToEx(hdc, x1, y1, IntPtr.Zero);
 			LineTo(hdc, x2, y2);
-			FinishDraw(bmp, graphics, hdc, oldpen, oldRop, img, dash);
+			FinishDraw(graphics, hdc, oldpen, oldRop, img, dash);
 		}
 
 		public static void DrawXorRectangle(Graphics graphics, Bitmap bmp, int x1, int y1, int x2, int y2, bool dash = true) {
-			int oldRop;
-			IntPtr oldpen, img, hdc = BeginDraw(bmp, graphics, x1, y1, x2, y2, dash, out oldRop, out img, out oldpen);
+			IntPtr oldpen, img, hdc = BeginDraw(bmp, graphics, dash, out int oldRop, out img, out oldpen);
 			MoveToEx(hdc, x1, y1, IntPtr.Zero); //clockwise
 			LineTo(hdc, x2, y1);
 			LineTo(hdc, x2, y2);
 			LineTo(hdc, x1, y2);
 			LineTo(hdc, x1, y1);
-			FinishDraw(bmp, graphics, hdc, oldpen, oldRop, img, dash);
+			FinishDraw(graphics, hdc, oldpen, oldRop, img, dash);
 		}
 	}
 }

@@ -4,7 +4,7 @@ using System.Windows.Forms;
 namespace ConvImgCpc {
 	public partial class ParamInterne : Form {
 		private bool stopModif;
-		private Main main;
+		private readonly Main main;
 
 		public ParamInterne(Main m) {
 			InitializeComponent();

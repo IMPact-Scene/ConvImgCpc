@@ -5,20 +5,20 @@ using System.Windows.Forms;
 
 namespace ConvImgCpc {
 	public partial class SaveAnim : Form {
-		private static byte[] BufPrec = new byte[0x8000];
-		private static byte[] DiffImage = new byte[0x8000];
-		private static byte[] BufTmp = new byte[0x8000];
-		private static byte[] bLigne = new byte[0x10000];
-		private static byte[] OldImgAscii = new byte[0x1000];
+		private static readonly byte[] BufPrec = new byte[0x8000];
+		private static readonly byte[] DiffImage = new byte[0x8000];
+		private static readonly byte[] BufTmp = new byte[0x8000];
+		private static readonly byte[] bLigne = new byte[0x10000];
+		private static readonly byte[] OldImgAscii = new byte[0x1000];
 		private char lastAscii = '\0';
 
-		private string fileName;
-		private string version;
-		private ImageCpc img;
-		private Param param;
-		private Main.PackMethode pkMethode;
-		private PackModule pk = new PackModule();
-		private Main main;
+		private readonly string fileName;
+		private readonly string version;
+		private readonly ImageCpc img;
+		private readonly Param param;
+		private readonly Main.PackMethode pkMethode;
+		private readonly PackModule pk = new PackModule();
+		private readonly Main main;
 
 		public SaveAnim(Main m, string f, string v, Main.PackMethode pm) {
 			fileName = f;
@@ -45,8 +45,8 @@ namespace ConvImgCpc {
 					for (int y = 0; y < height; y++) {
 						for (int x = 0; x < width; x++) {
 							adr = Cpc.GetAdrCpc((ligne * height + y) << 1) + x + col * width;
-							tabBlock[x + y * width] = img.bitmapCpc.bmpCpc[adr];
-							if (img.bitmapCpc.bmpCpc[adr] != BufPrec[adr])
+							tabBlock[x + y * width] = img.BitmapCpc.bmpCpc[adr];
+							if (img.BitmapCpc.bmpCpc[adr] != BufPrec[adr])
 								modif = true;
 						}
 					}
@@ -70,7 +70,7 @@ namespace ConvImgCpc {
 				Array.Clear(BufPrec, 0, BufPrec.Length);
 
 			// Copier l'image cpc dans le buffer de travail
-			img.bitmapCpc.CreeBmpCpc(img.BmpLock);
+			img.BitmapCpc.CreeBmpCpc(img.BmpLock);
 
 			int lpack, lmin = 0xFFFF, passOk = 0;
 			for (int pass = 0; pass < 3; pass++) {
@@ -83,7 +83,7 @@ namespace ConvImgCpc {
 			}
 
 			lpack = TryPackBlock(1 << passOk, height, bufOut, ref sizeDepack);
-			Array.Copy(img.bitmapCpc.bmpCpc, BufPrec, BufPrec.Length);
+			Array.Copy(img.BitmapCpc.bmpCpc, BufPrec, BufPrec.Length);
 			return lpack;
 		}
 
@@ -98,7 +98,7 @@ namespace ConvImgCpc {
 				Array.Clear(BufPrec, 0, BufPrec.Length);
 
 			// Copier l'image cpc dans le buffer de travail
-			img.bitmapCpc.CreeBmpCpc(img.BmpLock);
+			img.BitmapCpc.CreeBmpCpc(img.BmpLock);
 
 			if (chkZoneVert.Checked) {
 				xStart = topBottom < 1 ? 0 : Cpc.NbCol >> 1;
@@ -112,12 +112,12 @@ namespace ConvImgCpc {
 			for (int l = lStart; l < lEnd; l += modeLigne) {
 				int adr = Cpc.GetAdrCpc(l << 1);
 				for (int oct = xStart; oct < xEnd; oct++) {
-					if (img.bitmapCpc.bmpCpc[adr + oct] != BufPrec[adr + oct]) {
+					if (img.BitmapCpc.bmpCpc[adr + oct] != BufPrec[adr + oct]) {
 						xDeb = Math.Min(xDeb, oct);
 						xFin = Math.Max(xFin, oct);
 						yDeb = Math.Min(yDeb, l);
 						yFin = Math.Max(yFin, l);
-						BufPrec[adr + oct] = img.bitmapCpc.bmpCpc[adr + oct];
+						BufPrec[adr + oct] = img.BitmapCpc.bmpCpc[adr + oct];
 					}
 				}
 			}
@@ -175,8 +175,8 @@ namespace ConvImgCpc {
 				Array.Clear(BufPrec, 0, BufPrec.Length);
 
 			// Copier l'image cpc dans le buffer de travail
-			img.bitmapCpc.CreeBmpCpc(img.BmpLock);
-			byte[] src = img.bitmapCpc.bmpCpc;
+			img.BitmapCpc.CreeBmpCpc(img.BmpLock);
+			byte[] src = img.BitmapCpc.bmpCpc;
 
 			int maxSize = (Cpc.NbCol) + ((Cpc.NbLig - 1) >> 3) * (Cpc.NbCol) + ((Cpc.NbLig - 1) & 7) * 0x800;
 			if (maxSize >= 0x4000)
@@ -222,7 +222,7 @@ namespace ConvImgCpc {
 			return lPack;
 		}
 
-		private int PackDataBrut(byte[] bufOut, ref int sizeDepack) {
+		private int PackDataBrut(byte[] bufOut) {
 			int k = 0;
 			Array.Clear(bufOut, 0, bufOut.Length);
 			for (int y = 0; y < Cpc.TailleY; y += 2) {
@@ -309,13 +309,13 @@ namespace ConvImgCpc {
 
 			if (perte) {
 				for (int i = Cpc.NbCol; i < tailleMax - Cpc.NbCol; i++)
-					if (OldImgAscii[i - 1] == img.bitmapCpc.imgAscii[i - 1] && OldImgAscii[i + 1] == img.bitmapCpc.imgAscii[i + 1]
-						&& OldImgAscii[i - Cpc.NbCol] == img.bitmapCpc.imgAscii[i - Cpc.NbCol] && OldImgAscii[i + Cpc.NbCol] == img.bitmapCpc.imgAscii[i + Cpc.NbCol])
-						img.bitmapCpc.imgAscii[i] = OldImgAscii[i];
+					if (OldImgAscii[i - 1] == img.BitmapCpc.imgAscii[i - 1] && OldImgAscii[i + 1] == img.BitmapCpc.imgAscii[i + 1]
+						&& OldImgAscii[i - Cpc.NbCol] == img.BitmapCpc.imgAscii[i - Cpc.NbCol] && OldImgAscii[i + Cpc.NbCol] == img.BitmapCpc.imgAscii[i + Cpc.NbCol])
+						img.BitmapCpc.imgAscii[i] = OldImgAscii[i];
 			}
 			for (int i = 0; i < tailleMax; i++) {
 				byte oldAsc = OldImgAscii[i];
-				byte newAsc = img.bitmapCpc.imgAscii[i];
+				byte newAsc = img.BitmapCpc.imgAscii[i];
 				if (nbModif == 255 || (oldAsc != newAsc) || firstFrame) {
 					if (oldAsc != newAsc) {
 						nDiff++;
@@ -330,8 +330,8 @@ namespace ConvImgCpc {
 				else
 					nbModif++;
 			}
-			Array.Copy(img.bitmapCpc.imgAscii, OldImgAscii, OldImgAscii.Length);
-			sizeDepack = img.bitmapCpc.imgAscii.Length + 4;
+			Array.Copy(img.BitmapCpc.imgAscii, OldImgAscii, OldImgAscii.Length);
+			sizeDepack = img.BitmapCpc.imgAscii.Length + 4;
 			if (nDiff == 0 && rbFrameFull.Checked) {
 				if (rbFrameFull.Checked) {
 					BufTmp[0] = (byte)'I';
@@ -345,8 +345,8 @@ namespace ConvImgCpc {
 			}
 			else {
 				BufTmp[0] = (byte)'O';
-				Array.Copy(img.bitmapCpc.imgAscii, 0, BufTmp, 1, tailleMax);
-				int lo = rbFrameO.Checked || imageMode ? pk.Pack(img.bitmapCpc.imgAscii, tailleMax, BufPrec, 0, pkMethode) : pk.Pack(BufTmp, tailleMax + 1, BufPrec, 0, pkMethode);
+				Array.Copy(img.BitmapCpc.imgAscii, 0, BufTmp, 1, tailleMax);
+				int lo = rbFrameO.Checked || imageMode ? pk.Pack(img.BitmapCpc.imgAscii, tailleMax, BufPrec, 0, pkMethode) : pk.Pack(BufTmp, tailleMax + 1, BufPrec, 0, pkMethode);
 				posDiff = Math.Min(lastPosDiff, posDiff);
 				if (rbFrameD.Checked || imageMode) {
 					BufTmp[0] = (byte)(posDiff >> 1);
@@ -387,10 +387,10 @@ namespace ConvImgCpc {
 		private int PackFrame(byte[] bufOut, ref int sizeDepack, bool razDiff, bool firstFrame, int topBottom, int modeLigne, bool imageMode, bool optimSpeed, int height) {
 			int ret = 0;
 			if (chkDataBrut.Checked)
-				return PackDataBrut(bufOut, ref sizeDepack);
+				return PackDataBrut(bufOut);
 
 			if (Cpc.modeVirtuel >= 7) {
-				img.bitmapCpc.ConvertAscii(img.BmpLock);
+				img.BitmapCpc.ConvertAscii(img.BmpLock);
 				return PackAscii(bufOut, ref sizeDepack, razDiff, firstFrame, imageMode);
 			}
 			switch (comboMethode.SelectedIndex) {
@@ -430,7 +430,7 @@ namespace ConvImgCpc {
 
 			if (chkBoucle.Checked) {
 				img.main.SelectImage(nbImages - 1, true);
-				img.Convert(!img.bitmapCpc.isCalc, true);
+				img.Convert(!img.BitmapCpc.isCalc, true);
 				lg[posPack] = PackFrame(bufOut[0], ref sizeDepack, true, false, -1, modeLigne, imageMode, optimSpeed, height);
 				speed[posPack] = img.BmpLock.Tps;
 				if (lg[posPack] > 0)
@@ -442,7 +442,7 @@ namespace ConvImgCpc {
 			for (int i = 0; i < (imageMode ? 1 : nbImages); i++) {
 				if (!imageMode) {
 					img.main.SelectImage(i, true);
-					img.Convert(!img.bitmapCpc.isCalc, true);
+					img.Convert(!img.BitmapCpc.isCalc, true);
 				}
 				Application.DoEvents();
 				speed[posPack] = img.BmpLock.Tps;

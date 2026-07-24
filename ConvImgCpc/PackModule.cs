@@ -10,8 +10,8 @@ namespace ConvImgCpc {
 		private const int MAX_OFFSET_ZX1 = 32512;
 		private const int MAX_SCALE = 50;
 
-		private int[] matches = new int[MAXSTRING];
-		private int[,] matchtable = new int[MAXSTRING, SEEKBACK];
+		private readonly int[] matches = new int[MAXSTRING];
+		private readonly int[,] matchtable = new int[MAXSTRING, SEEKBACK];
 		private Block ghostRoot;
 		private int outputIndex, bitIndex, bitMask;
 		private bool backTrack;
@@ -598,8 +598,7 @@ namespace ConvImgCpc {
 			return outputSize;
 		}
 
-		public int Depack(byte[] bufIn, int startIn, byte[] bufOut, Main.PackMethode pkMethode) {
-			//if (methode == Main.PackMethode.Standard)
+		public int Depack(byte[] bufIn, int startIn, byte[] bufOut) {
 			return DepackStd(bufIn, startIn, bufOut);
 		}
 

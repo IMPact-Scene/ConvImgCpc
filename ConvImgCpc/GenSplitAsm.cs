@@ -3,8 +3,8 @@ using System.IO;
 
 namespace ConvImgCpc {
 	static public class GenSplitAsm {
-		private static string CpcVGA = "TDU\\X]LEMVFW^@_NGORBSZY[JCK";
-		private static byte[] bufPack = new byte[0x8000];
+		private readonly static string CpcVGA = "TDU\\X]LEMVFW^@_NGORBSZY[JCK";
+		private readonly static byte[] bufPack = new byte[0x8000];
 
 		// Code d'initialisation
 		static private void WriteDebFile(StreamWriter wr) {

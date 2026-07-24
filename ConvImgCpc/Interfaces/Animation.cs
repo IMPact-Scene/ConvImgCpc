@@ -6,7 +6,7 @@ using System.Windows.Forms;
 
 namespace ConvImgCpc {
 	public partial class Animation : Form {
-		private Main main;
+		private readonly Main main;
 		private bool displaySrc = true;
 		public int SelImage { get { return (int)numImage.Value; } }
 		public int MaxImage { get { return (int)numImage.Maximum; } }
@@ -131,7 +131,7 @@ namespace ConvImgCpc {
 			}
 			catch (Exception ex) {
 				main.DisplayErreur("Erreur lors de la sauvegarde du gif.");
-
+				MessageBox.Show(ex.Message, ex.StackTrace);
 			}
 		}
 
