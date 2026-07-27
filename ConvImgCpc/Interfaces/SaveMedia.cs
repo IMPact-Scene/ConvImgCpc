@@ -8,8 +8,9 @@ namespace ConvImgCpc {
 		public string LabelPal { get { return chkLabelPalette.Checked ? txbLabelPalette.Text : ""; } }
 		public string LabelPtr { get { return chkLabelPtr.Checked ? txbLabelPtr.Text : ""; } }
 		public bool ZeroPtr { get { return chkZeroPtr.Checked; } }
+		public int NbMedia { get { return (int)numNbMedia.Value; } }
 
-		public SaveMedia(string typeMedia, string fileName, bool withPalette, bool withPtr = false) {
+		public SaveMedia(string typeMedia, string fileName, bool withPalette, bool withPtr = false, string strNbMedia = null, int nbMedia = 0) {
 			InitializeComponent();
 			Text = "Save " + typeMedia + " (asm format)";
 			chkLabelMedia.Text = typeMedia + " Label";
@@ -22,6 +23,11 @@ namespace ConvImgCpc {
 			chkLabelPtr.Text = typeMedia + " Pointer Label";
 			txbLabelPtr.Text = fileName + "Ptr";
 			txbLabelPtr.Visible = chkZeroPtr.Visible = chkLabelPtr.Visible = withPtr;
+			if (strNbMedia != null) {
+				lblNbMedia.Visible = numNbMedia.Visible = true;
+				lblNbMedia.Text = strNbMedia;
+				numNbMedia.Value = nbMedia;
+			}
 		}
 
 		private void BpOk_Click(object sender, EventArgs e) {

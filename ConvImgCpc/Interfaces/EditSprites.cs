@@ -738,7 +738,9 @@ namespace ConvImgCpc {
 									buffer[pos++] = Cpc.spritesHard[bank, i, x, y];
 							}
 						}
-					SaveMedia dlgSave = new SaveMedia("Sprites", Path.GetFileNameWithoutExtension(dlg.FileName), true, dlg.FilterIndex == 3);
+					bool withNbSpr = dlg.FilterIndex == 4 && !allBank;
+					string fileName = Path.GetFileNameWithoutExtension(dlg.FileName);
+					SaveMedia dlgSave = new SaveMedia("Sprites", fileName, true, dlg.FilterIndex == 3, withNbSpr ? "Number of sprites to save" : null, maxSprite + 1);
 					switch (dlg.FilterIndex) {
 						case 1:
 							CpcAmsdos entete = Cpc.CreeEntete(Path.GetFileName(dlg.FileName), 0x4000, (short)size, 0);
@@ -819,7 +821,7 @@ namespace ConvImgCpc {
 							dlgSave.ShowDialog();
 							if (dlgSave.saveMediaOk) {
 								StreamWriter sw3 = SaveAsm.OpenAsm(dlg.FileName, "");
-								int nbSpt = maxSprite + 1 - (startBank << 4);
+								int nbSpt = allBank ? maxSprite + 1 - (startBank << 4) : dlgSave.NbMedia;
 								sw3.WriteLine("; " + nbSpt.ToString() + " sprites");
 								sw3.WriteLine(dlgSave.LabelMedia);
 								int lt = new PackModule().Pack(buffer, nbSpt << 8, sprPk, 0, pkMethod);

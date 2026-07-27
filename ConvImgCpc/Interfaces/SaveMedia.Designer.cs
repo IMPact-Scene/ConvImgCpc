@@ -31,6 +31,9 @@
 			this.chkLabelMedia = new System.Windows.Forms.CheckBox();
 			this.chkLabelPalette = new System.Windows.Forms.CheckBox();
 			this.chkLabelPtr = new System.Windows.Forms.CheckBox();
+			this.numNbMedia = new System.Windows.Forms.NumericUpDown();
+			this.lblNbMedia = new System.Windows.Forms.Label();
+			((System.ComponentModel.ISupportInitialize)(this.numNbMedia)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// txbLabelMedia
@@ -50,7 +53,7 @@
 			// chkZeroPtr
 			// 
 			this.chkZeroPtr.AutoSize = true;
-			this.chkZeroPtr.Location = new System.Drawing.Point(18, 103);
+			this.chkZeroPtr.Location = new System.Drawing.Point(18, 145);
 			this.chkZeroPtr.Name = "chkZeroPtr";
 			this.chkZeroPtr.Size = new System.Drawing.Size(172, 17);
 			this.chkZeroPtr.TabIndex = 4;
@@ -59,7 +62,7 @@
 			// 
 			// bpOk
 			// 
-			this.bpOk.Location = new System.Drawing.Point(409, 99);
+			this.bpOk.Location = new System.Drawing.Point(409, 141);
 			this.bpOk.Name = "bpOk";
 			this.bpOk.Size = new System.Drawing.Size(75, 23);
 			this.bpOk.TabIndex = 5;
@@ -110,11 +113,46 @@
 			this.chkLabelPtr.UseVisualStyleBackColor = true;
 			this.chkLabelPtr.CheckedChanged += new System.EventHandler(this.ChkLabelPtr_CheckedChanged);
 			// 
+			// numNbMedia
+			// 
+			this.numNbMedia.Location = new System.Drawing.Point(163, 99);
+			this.numNbMedia.Maximum = new decimal(new int[] {
+            16,
+            0,
+            0,
+            0});
+			this.numNbMedia.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+			this.numNbMedia.Name = "numNbMedia";
+			this.numNbMedia.Size = new System.Drawing.Size(36, 20);
+			this.numNbMedia.TabIndex = 7;
+			this.numNbMedia.Value = new decimal(new int[] {
+            16,
+            0,
+            0,
+            0});
+			this.numNbMedia.Visible = false;
+			// 
+			// lblNbMedia
+			// 
+			this.lblNbMedia.AutoSize = true;
+			this.lblNbMedia.Location = new System.Drawing.Point(15, 101);
+			this.lblNbMedia.Name = "lblNbMedia";
+			this.lblNbMedia.Size = new System.Drawing.Size(127, 13);
+			this.lblNbMedia.TabIndex = 8;
+			this.lblNbMedia.Text = "Number of sprites to save";
+			this.lblNbMedia.Visible = false;
+			// 
 			// SaveMedia
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(496, 127);
+			this.ClientSize = new System.Drawing.Size(496, 171);
+			this.Controls.Add(this.lblNbMedia);
+			this.Controls.Add(this.numNbMedia);
 			this.Controls.Add(this.chkLabelPtr);
 			this.Controls.Add(this.chkLabelPalette);
 			this.Controls.Add(this.chkLabelMedia);
@@ -127,6 +165,7 @@
 			this.MaximizeBox = false;
 			this.MinimizeBox = false;
 			this.Name = "SaveMedia";
+			((System.ComponentModel.ISupportInitialize)(this.numNbMedia)).EndInit();
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -141,5 +180,7 @@
 		private System.Windows.Forms.CheckBox chkLabelMedia;
 		private System.Windows.Forms.CheckBox chkLabelPalette;
 		private System.Windows.Forms.CheckBox chkLabelPtr;
+		private System.Windows.Forms.NumericUpDown numNbMedia;
+		private System.Windows.Forms.Label lblNbMedia;
 	}
 }
