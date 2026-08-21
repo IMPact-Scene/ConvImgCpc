@@ -276,7 +276,7 @@ namespace ConvImgCpc {
 						memoMouseX = e.X;
 						memoMouseY = e.Y;
 					}
-					else 
+					else
 						main.SetSizePos(posx + memoMouseX - e.X, posy + memoMouseY - e.Y, sizex, sizey, true);
 				}
 				else {
@@ -675,13 +675,15 @@ namespace ConvImgCpc {
 			int pos = 0;
 			byte[] bump = new byte[Cpc.TailleY * Cpc.TailleX / 64];
 			for (int y = 0; y < Cpc.TailleY; y += 16) {
+				int tx = BitmapCpc.CalcTx(y) >> 1;
 				for (int x = 0; x < Cpc.TailleX; x += 8) {
 					for (int yy = 0; yy < 2; yy++) {
-						bump[pos++] = (byte)Cpc.GetPenColor(BmpLock, x, y + (yy << 3));
+						bump[pos++] = BitmapCpc.GetByteCpc(BmpLock, x, y + (yy << 3), tx);
 					}
 				}
 			}
 			StreamWriter sw = SaveAsm.OpenAsm(fileName, version, true);
+			SaveAsm.GenerePalette(sw, main.param, false, false, "Palette");
 			SaveAsm.GenereDatas(sw, bump, bump.Length, 16);
 			SaveAsm.CloseAsm(sw);
 			main.SetInfo("Sauvegarde bump ok.");
@@ -893,7 +895,7 @@ namespace ConvImgCpc {
 				if (val == 0xFFFF)
 					val = 0;
 
-				string valStr = "#" + (Cpc.cpcPlus ? val.ToString("X3") : ((byte)(Cpc.CpcVGA[val])).ToString("X2"));
+				string valStr = "#" + (Cpc.cpcPlus ? val.ToString("X3") : ((byte)(Cpc.CpcVGA[val & 0x1F])).ToString("X2"));
 				palTxt += valStr + (i < maxPen - 1 ? "," : "");
 
 			}
@@ -1003,6 +1005,13 @@ namespace ConvImgCpc {
 			return ret;
 		}
 
+		private void WriteWinDim(StreamWriter sw) {
+			int posx = copyRectw > 0 ? copyRectx : copyRectx + copyRectw;
+			int posy = copyRecth > 0 ? copyRecty : copyRecty + copyRecth;
+			sw.WriteLine(";Width:" + imgMotif.Width + ", Height:" + imgMotif.Height);
+			sw.WriteLine(";Posx:" + posx + ", Posy:" + posy);
+		}
+
 		private void BpSaveWin_Click(object sender, EventArgs e) {
 			Enabled = false;
 			SaveFileDialog dlg = new SaveFileDialog { Filter = " (.win)|*.win| Raw assembler data (.asm)|*.asm|Raw assembler data in column order (.asm)|*.asm" };
@@ -1028,6 +1037,7 @@ namespace ConvImgCpc {
 					case 2:
 						bWin = MakeWin();
 						StreamWriter sw1 = SaveAsm.OpenAsm(fileName, main.lblInfoVersion.Text);
+						WriteWinDim(sw1);
 						SaveAsm.GenereDatas(sw1, bWin, bWin.Length, (imgMotif.Width + 7) >> 3);
 						SaveAsm.CloseAsm(sw1);
 						break;
@@ -1035,6 +1045,7 @@ namespace ConvImgCpc {
 					case 3:
 						bWin = MakeWin(true);
 						StreamWriter sw2 = SaveAsm.OpenAsm(fileName, main.lblInfoVersion.Text);
+						WriteWinDim(sw2);
 						SaveAsm.GenereDatas(sw2, bWin, bWin.Length, imgMotif.Height >> 1);
 						SaveAsm.CloseAsm(sw2);
 						break;

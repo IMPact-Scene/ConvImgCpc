@@ -230,19 +230,29 @@ namespace ConvImgCpc {
 			}
 		}
 
+		public byte GetByteCpc(DirectBitmap bmpLock, int x, int y, int tx) {
+			byte octet = 0, decal = 0;
+			for (int p = 0; p < 8; p += tx) {
+				int pen = GetPenColor(bmpLock, x + p, y);
+				octet |= (byte)(tabOctetMode[pen] >> (decal++));
+			}
+			return octet;
+		}
+
 		public void CreeBmpCpc(DirectBitmap bmpLock, bool egx = false, int lignestart = 0) {
 			Array.Clear(bmpCpc, 0, bmpCpc.Length);
 			for (int y = 0; y < TailleY; y += 2) {
 				int adrCPC = GetAdrCpc(y);
 				int tx = CalcTx(y);
 				for (int x = 0; x < TailleX; x += 8) {
-					byte octet = 0, decal = 0;
 					if (!egx || ((y >> 1) & 1) == lignestart) {
-						for (int p = 0; p < 8; p += tx) {
-							int pen = GetPenColor(bmpLock, x + p, y);
-							octet |= (byte)(tabOctetMode[pen] >> (decal++));
-						}
-						bmpCpc[adrCPC + (x >> 3)] = octet;
+						bmpCpc[adrCPC + (x >> 3)] = GetByteCpc(bmpLock, x, y, tx);
+						//byte octet = 0, decal = 0;
+						//for (int p = 0; p < 8; p += tx) {
+						//	int pen = GetPenColor(bmpLock, x + p, y);
+						//	octet |= (byte)(tabOctetMode[pen] >> (decal++));
+						//}
+						//bmpCpc[adrCPC + (x >> 3)] = octet;
 					}
 				}
 			}
@@ -440,7 +450,7 @@ namespace ConvImgCpc {
 						DepactPK();
 					else {
 						if (!InitDatas()) {
-							if (length == 16384) {
+							if (length == 16384 || length == 16336) {
 								nbCol = 80;
 								nbLig = 200;
 							}

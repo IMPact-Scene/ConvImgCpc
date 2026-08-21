@@ -339,7 +339,7 @@ namespace ConvImgCpc {
 			RvbColor[,] tabCol = new RvbColor[16, 272];
 			int[] MemoLockState = new int[16];
 			int i;
-			int maxPen = Cpc.MaxPen(2);
+			int maxPen = Cpc.MaxPen(Cpc.yEgx ^ 2);
 			for (i = 0; i < 16; i++)
 				MemoLockState[i] = prm.lockState[i];
 
