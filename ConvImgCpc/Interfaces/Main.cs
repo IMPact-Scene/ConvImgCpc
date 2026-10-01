@@ -798,8 +798,8 @@ namespace ConvImgCpc {
 							if (Cpc.modeVirtuel == 3 || Cpc.modeVirtuel == 4)
 							imgCpc.SauveEgx(dlg.FileName, param);
 						else
-							//imgCpc.SauvBump(dlg.FileName, lblInfoVersion.Text);
-							imgCpc.SauveDiffImage(dlg.FileName, lblInfoVersion.Text, false, PackMethode.None);
+							imgCpc.SauvBump(dlg.FileName, lblInfoVersion.Text);
+							//imgCpc.SauveDiffImage(dlg.FileName, lblInfoVersion.Text, false, PackMethode.None);
 						break;
 				}
 				param.lastSavePath = Path.GetDirectoryName(dlg.FileName);
@@ -815,7 +815,7 @@ namespace ConvImgCpc {
 				Convert(false);
 			}
 			bpRasterPlus.Visible = nbLignes.Value == 272 && nbCols.Value == 96 && modePlus.Checked;
-			bpEditSplit.Visible = nbLignes.Value == 272 && nbCols.Value == 96 && !modePlus.Checked;
+			bpEditSplit.Visible = /*nbLignes.Value == 272 && nbCols.Value == 96 &&*/ !modePlus.Checked;
 		}
 
 		private void NbLignes_ValueChanged(object sender, EventArgs e) {
@@ -826,7 +826,7 @@ namespace ConvImgCpc {
 				Convert(false);
 			}
 			bpRasterPlus.Visible = nbLignes.Value == 272 && nbCols.Value == 96 && modePlus.Checked;
-			bpEditSplit.Visible = nbLignes.Value == 272 && nbCols.Value == 96 && !modePlus.Checked;
+			bpEditSplit.Visible = /*nbLignes.Value == 272 && nbCols.Value == 96 &&*/ !modePlus.Checked;
 		}
 
 		private void Mode_SelectedIndexChanged(object sender, EventArgs e) {
@@ -1206,7 +1206,7 @@ namespace ConvImgCpc {
 
 		private void ModePlus_CheckedChanged(object sender, EventArgs e) {
 			bpRasterPlus.Visible = nbLignes.Value == 272 && nbCols.Value == 96 && modePlus.Checked;
-			bpEditSplit.Visible = nbLignes.Value == 272 && nbCols.Value == 96 && !modePlus.Checked;
+			bpEditSplit.Visible = /*nbLignes.Value == 272 && nbCols.Value == 96 &&*/ !modePlus.Checked;
 			bpEditSprites.Visible = modePlus.Checked;
 			Cpc.cpcPlus = modePlus.Checked;
 			newMethode.Visible = !modePlus.Checked;
@@ -1492,7 +1492,7 @@ namespace ConvImgCpc {
 				Filter = "Totem raster assembleur (.asm)|*.asm"
 			};
 			DialogResult result = dlg.ShowDialog();
-			if (result == System.Windows.Forms.DialogResult.OK) {
+			if (result == DialogResult.OK) {
 				imgCpc.SauveTunnel(dlg.FileName);
 			}
 			Enabled = true;

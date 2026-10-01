@@ -102,7 +102,7 @@ namespace ConvImgCpc {
 				sw.WriteLine("; Taille totale " + length.ToString() + " octets");
 		}
 
-		static private void GenereDepack(StreamWriter sw, Main.PackMethode pkMethode, string jumpLabel = null) {
+		static public void GenereDepack(StreamWriter sw, Main.PackMethode pkMethode, string jumpLabel = null) {
 			switch (pkMethode) {
 				case Main.PackMethode.Standard:
 					GenereDStd(sw, jumpLabel);

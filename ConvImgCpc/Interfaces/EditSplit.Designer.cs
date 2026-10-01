@@ -107,7 +107,7 @@
 			// 
 			this.numLigne.Location = new System.Drawing.Point(60, 36);
 			this.numLigne.Maximum = new decimal(new int[] {
-            271,
+            261,
             0,
             0,
             0});
@@ -545,7 +545,7 @@
 			this.lblColor6.Name = "lblColor6";
 			this.lblColor6.Size = new System.Drawing.Size(35, 35);
 			this.lblColor6.TabIndex = 5;
-			this.lblColor6.Click += new System.EventHandler(this.LblColor7_Click);
+			this.lblColor6.Click += new System.EventHandler(this.LblColor6_Click);
 			// 
 			// lblColor5
 			// 
@@ -554,7 +554,7 @@
 			this.lblColor5.Name = "lblColor5";
 			this.lblColor5.Size = new System.Drawing.Size(35, 35);
 			this.lblColor5.TabIndex = 5;
-			this.lblColor5.Click += new System.EventHandler(this.LblColor6_Click);
+			this.lblColor5.Click += new System.EventHandler(this.LblColor5_Click);
 			// 
 			// lblColor4
 			// 
@@ -563,7 +563,7 @@
 			this.lblColor4.Name = "lblColor4";
 			this.lblColor4.Size = new System.Drawing.Size(35, 35);
 			this.lblColor4.TabIndex = 5;
-			this.lblColor4.Click += new System.EventHandler(this.LblColor5_Click);
+			this.lblColor4.Click += new System.EventHandler(this.LblColor4_Click);
 			// 
 			// lblColor3
 			// 
@@ -572,7 +572,7 @@
 			this.lblColor3.Name = "lblColor3";
 			this.lblColor3.Size = new System.Drawing.Size(35, 35);
 			this.lblColor3.TabIndex = 5;
-			this.lblColor3.Click += new System.EventHandler(this.LblColor4_Click);
+			this.lblColor3.Click += new System.EventHandler(this.LblColor3_Click);
 			// 
 			// lblColor2
 			// 
@@ -581,7 +581,7 @@
 			this.lblColor2.Name = "lblColor2";
 			this.lblColor2.Size = new System.Drawing.Size(35, 35);
 			this.lblColor2.TabIndex = 5;
-			this.lblColor2.Click += new System.EventHandler(this.LblColor3_Click);
+			this.lblColor2.Click += new System.EventHandler(this.LblColor2_Click);
 			// 
 			// lblColor1
 			// 
@@ -590,7 +590,7 @@
 			this.lblColor1.Name = "lblColor1";
 			this.lblColor1.Size = new System.Drawing.Size(35, 35);
 			this.lblColor1.TabIndex = 5;
-			this.lblColor1.Click += new System.EventHandler(this.LblColor2_Click);
+			this.lblColor1.Click += new System.EventHandler(this.LblColor1_Click);
 			// 
 			// label16
 			// 
@@ -608,7 +608,7 @@
 			this.lblColor0.Name = "lblColor0";
 			this.lblColor0.Size = new System.Drawing.Size(35, 35);
 			this.lblColor0.TabIndex = 5;
-			this.lblColor0.Click += new System.EventHandler(this.LblColor1_Click);
+			this.lblColor0.Click += new System.EventHandler(this.LblColor0_Click);
 			// 
 			// chkSplit6
 			// 

@@ -28,8 +28,12 @@
 						}
 					}
 					for (int y = 0; y < 272; y++) {
-						coulTrouvee[Cpc.Palette[c], y] = 0;
-						colMode5[y, c] = Cpc.Palette[c];
+						int col = Cpc.Palette[c];
+						if (col > 4095)
+							col = 0;
+
+						coulTrouvee[col, y] = 0;
+						colMode5[y, c] = col;
 					}
 				}
 			}

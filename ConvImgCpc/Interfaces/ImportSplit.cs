@@ -26,7 +26,7 @@ namespace ConvImgCpc {
         private void ValideSplit() {
             listErr.Items.Clear();
             int lastLineWrite = 0;
-            for (int y = 0; y < 272; y++) {
+            for (int y = 0; y < 262; y++) {
                 int numSplit = 0, longSplit = 0;
                 RvbColor p = bmpSplit.GetPixelColor(0, y << 1);
                 int curCol = (p.r > SEUIL_LUM_2 ? 6 : p.r > SEUIL_LUM_1 ? 3 : 0) + (p.b > SEUIL_LUM_2 ? 2 : p.b > SEUIL_LUM_1 ? 1 : 0) + (p.v > SEUIL_LUM_2 ? 18 : p.v > SEUIL_LUM_1 ? 9 : 0);

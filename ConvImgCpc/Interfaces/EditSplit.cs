@@ -17,7 +17,6 @@ namespace ConvImgCpc {
 		private LigneSplit curLigneSplit;
 		public BitmapCpc bitmapCpc;
 		private int numCol = 0;
-		//private int mode = 1;
 
 		public EditSplit(Main m, DirectBitmap imgSource) {
 			InitializeComponent();
@@ -67,6 +66,7 @@ namespace ConvImgCpc {
 		private void DisplayLigne() {
 			doRender = false;
 			curLigneSplit = bitmapCpc.splitEcran.GetLigne((int)numLigne.Value);
+			CheckSplit6();
 			numPen.Value = curLigneSplit.numPen;
 			retard.Value = curLigneSplit.retard;
 			lblColor0.Visible = largSplit0.Visible = chkSplit0.Checked = curLigneSplit.GetSplit(0).enable;
@@ -325,38 +325,62 @@ namespace ConvImgCpc {
 			}
 		}
 
-		private void LblColor1_Click(object sender, EventArgs e) {
+		private void LblColor0_Click(object sender, EventArgs e) {
 			ChangeColor(0);
 			Render();
 		}
 
-		private void LblColor2_Click(object sender, EventArgs e) {
+		private void LblColor1_Click(object sender, EventArgs e) {
 			ChangeColor(1);
 			Render();
 		}
 
-		private void LblColor3_Click(object sender, EventArgs e) {
+		private void LblColor2_Click(object sender, EventArgs e) {
 			ChangeColor(2);
 			Render();
 		}
 
-		private void LblColor4_Click(object sender, EventArgs e) {
+		private void LblColor3_Click(object sender, EventArgs e) {
 			ChangeColor(3);
 			Render();
 		}
 
-		private void LblColor5_Click(object sender, EventArgs e) {
+		private void LblColor4_Click(object sender, EventArgs e) {
 			ChangeColor(4);
 			Render();
 		}
 
-		private void LblColor6_Click(object sender, EventArgs e) {
+		private void LblColor5_Click(object sender, EventArgs e) {
 			ChangeColor(5);
 			Render();
 		}
 
-		private void LblColor7_Click(object sender, EventArgs e) {
+		// Attention: on a 6 registres chargés avec des couleurs, si le split 7 a une couleur différente
+		// Des 6 premières couleurs préchangées, il faut refaire un LD A,couleur, donc ajouter 2 Nops
+		// Donc 16 pixels de décalage à ajouter au split précédent...
+		private void CheckSplit6() {
+			if (curLigneSplit.GetSplit(6).enable) {
+				bool sameColor = false;
+				for (int i = 0; i < 6; i++) {
+					if (curLigneSplit.GetSplit(6).couleur == curLigneSplit.GetSplit(i).couleur)
+						sameColor = true;
+				}
+				if (!sameColor) {
+					largSplit5.Minimum = 48;
+					if (curLigneSplit.GetSplit(5).longueur < 48) {
+						curLigneSplit.GetSplit(5).longueur = 48;
+					}
+				}
+				else
+					largSplit5.Minimum = 32;
+			}
+			else
+				largSplit5.Minimum = 32;
+		}
+
+		private void LblColor6_Click(object sender, EventArgs e) {
 			ChangeColor(6);
+			CheckSplit6();
 			Render();
 		}
 
@@ -375,6 +399,7 @@ namespace ConvImgCpc {
 				DisplayLigne();
 			}
 		}
+
 		private void BpImportSplit_Click(object sender, EventArgs e) {
 			Enabled = false;
 			ImportSplit imp = new ImportSplit(bitmapCpc.splitEcran);
@@ -390,56 +415,12 @@ namespace ConvImgCpc {
 				Enabled = false;
 				FileStream fs = new FileStream(dlg.FileName, FileMode.Create, FileAccess.Write);
 				StreamWriter sw = new StreamWriter(fs);
-				GenSplitAsm.CreeAsm(sw, bitmapCpc);
+				GenSplitAsm.CreeAsm(sw, bitmapCpc, main.pkMethode);
 				sw.Close();
 				fs.Close();
 				Enabled = true;
 			}
 		}
-
-		//static public int SauveScr(string fileName, BitmapCpc bitmapCpc, Main main) {
-		//	byte[] bufPack = new byte[0x8000];
-		//	short startAdr, exec;
-		//	CpcAmsdos entete;
-		//	int lg = Cpc.BitmapSize;
-
-		//	if (File.Exists(fileName))
-		//		main.dsk.Load(fileName);
-		//	else
-		//		main.dsk.FormatDsk();
-
-		//	MemoryStream ms = new MemoryStream();
-		//	entete = Cpc.CreeEntete(fileName, startAdr, (short)lg, exec);
-		//	BinaryWriter fpm = new BinaryWriter(ms);
-		//	fpm.Write(Cpc.AmsdosToByte(entete));
-		//	fpm.Write(compact != Main.PackMethode.None ? bufPack : bitmapCpc.bmpCpc, 0, lg);
-		//	fpm.Close();
-		//	byte[] fic = ms.ToArray();
-		//	GestDSK.DskError err = GestDSK.DskError.ERR_NO_ERR;
-		//	for (int i = 0; i < 100; i++) {
-		//		string nom = "PICT" + i.ToString("00") + ".BIN";
-		//		err = main.dsk.CopieFichier(fic, nom, fic.Length, 178, 0);
-		//		if (err == GestDSK.DskError.ERR_NO_ERR) {
-		//			main.SetInfo(main.multilingue.GetString("Main.prg.TxtInfo33") + nom);
-		//			break;
-		//		}
-		//	}
-		//	if (err == GestDSK.DskError.ERR_NO_ERR)
-		//		main.dsk.Save(fileName);
-		//	else {
-		//		switch (err) {
-		//			case GestDSK.DskError.ERR_FILE_EXIST:
-		//			case GestDSK.DskError.ERR_NO_DIRENTRY:
-		//				MessageBox.Show(main.multilingue.GetString("Main.prg.TxtInfo34"));
-		//				break;
-
-		//			case GestDSK.DskError.ERR_NO_BLOCK:
-		//				MessageBox.Show(main.multilingue.GetString("Main.prg.TxtInfo35"));
-		//				break;
-		//		}
-		//	}
-		//	return (lg);
-		//}
 
 		private void PictureBox_MouseClick(object sender, MouseEventArgs e) {
 			numLigne.Value = e.Y >> 1;
