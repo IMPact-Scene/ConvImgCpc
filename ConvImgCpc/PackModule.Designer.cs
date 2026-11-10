@@ -28,12 +28,12 @@
 			// 
 			// progressBar1
 			// 
-			this.progressBar1.Location = new System.Drawing.Point(1, 2);
+			this.progressBar1.Location = new System.Drawing.Point(3, 2);
 			this.progressBar1.Name = "progressBar1";
-			this.progressBar1.Size = new System.Drawing.Size(408, 27);
+			this.progressBar1.Size = new System.Drawing.Size(406, 27);
 			this.progressBar1.TabIndex = 0;
 			// 
-			// PackZX0
+			// PackModule
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -43,8 +43,7 @@
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
 			this.MaximizeBox = false;
 			this.MinimizeBox = false;
-			this.Name = "PackZX0";
-			this.Text = "Compress...";
+			this.Name = "PackModule";
 			this.ResumeLayout(false);
 
 		}

@@ -3,24 +3,20 @@
 		// Conversion "standard"
 		static private void ConvertStd(DirectBitmap source, Param prm, ImageCpc dest, int maxPen, RvbColor[,] tabCol) {
 			int offsetY = prm.modeImpDraw && Cpc.TailleY == 544 ? 2 : 0;
+			double[] pl = new double[16], pa = new double[16], pb = new double[16];
 			for (int y = 0; y < Cpc.TailleY; y += 2) {
 				int Tx = Cpc.CalcTx(y);
 				maxPen = Cpc.MaxPen(y);
+				PenLab(tabCol, y >> 1, maxPen, pl, pa, pb);
 				for (int x = 0; x < Cpc.TailleX; x += Tx) {
-					int oldDist = 0x7FFFFFFF;
-					RvbColor pix = source.GetPixelColor(x, y);
-					int choix = 0;
-					for (int i = 0; i < maxPen; i++) {
-						RvbColor c = tabCol[i, y >> 1];
-						if (c != null && prm.disableState[i] == 0) {
-							int dist = (c.r - pix.r) * (c.r - pix.r) * prm.coefR + (c.v - pix.v) * (c.v - pix.v) * prm.coefV + (c.b - pix.b) * (c.b - pix.b) * prm.coefB;
-							if (dist < oldDist) {
-								choix = i;
-								oldDist = dist;
-								if (dist == 0)
-									i = maxPen;
-							}
-						}
+					// Pixel d'origine + réglages + erreur diffusée (tramage avec la palette finale)
+					RvbColor pix = ConvReadPixel(source, prm, x, y, Tx);
+					int choix = NearestPenLine(prm, pix, tabCol, y >> 1, maxPen, pl, pa, pb, true);
+					RvbColor col = tabCol[choix, y >> 1];
+					if (col != null) {
+						ConvDiffuse(source, prm, x, y, Tx, 2, pix, col);
+						if (redoActive)
+							source.SetPixel(x, y, col);     // la source contient l'image réduite, comme après la passe 1
 					}
 					dest.SetPixelCpc(x, y + offsetY, choix, Tx);
 				}

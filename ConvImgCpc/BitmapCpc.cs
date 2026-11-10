@@ -245,15 +245,8 @@ namespace ConvImgCpc {
 				int adrCPC = GetAdrCpc(y);
 				int tx = CalcTx(y);
 				for (int x = 0; x < TailleX; x += 8) {
-					if (!egx || ((y >> 1) & 1) == lignestart) {
+					if (!egx || ((y >> 1) & 1) == lignestart)
 						bmpCpc[adrCPC + (x >> 3)] = GetByteCpc(bmpLock, x, y, tx);
-						//byte octet = 0, decal = 0;
-						//for (int p = 0; p < 8; p += tx) {
-						//	int pen = GetPenColor(bmpLock, x + p, y);
-						//	octet |= (byte)(tabOctetMode[pen] >> (decal++));
-						//}
-						//bmpCpc[adrCPC + (x >> 3)] = octet;
-					}
 				}
 			}
 		}

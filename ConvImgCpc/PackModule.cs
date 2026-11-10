@@ -18,6 +18,7 @@ namespace ConvImgCpc {
 
 		public PackModule() {
 			InitializeComponent();
+			this.Text = "Compress...";
 		}
 
 		private int DepackStd(byte[] bufIn, int startIn, byte[] bufOut) {
@@ -48,37 +49,37 @@ namespace ConvImgCpc {
 					}
 					else
 						if ((a & 0x40) != 0) {
-						longueur = 2;
-						delta = bufIn[inBytes++] & 0x3f;
-						delta++;
-					}
-					else
+							longueur = 2;
+							delta = bufIn[inBytes++] & 0x3f;
+							delta++;
+						}
+						else
 							if ((a & 0x20) != 0) {
-						longueur = 2 + (bufIn[inBytes++] & 31);
-						delta = bufIn[inBytes++];
-						delta++;
-					}
-					else
-								if ((a & 0x10) != 0) {
-						delta = (bufIn[inBytes++] & 15) << 8;
-						delta |= bufIn[inBytes++];
-						longueur = bufIn[inBytes++] + 1;
-						delta++;
-					}
-					else {
-						if (bufIn[inBytes] == 15) {
-							longueur = delta = bufIn[inBytes + 1] + 1;
-							inBytes += 2;
-						}
-						else {
-							if (bufIn[inBytes] > 1)
-								longueur = delta = bufIn[inBytes];
+								longueur = 2 + (bufIn[inBytes++] & 31);
+								delta = bufIn[inBytes++];
+								delta++;
+							}
 							else
-								longueur = delta = 256;
+								if ((a & 0x10) != 0) {
+									delta = (bufIn[inBytes++] & 15) << 8;
+									delta |= bufIn[inBytes++];
+									longueur = bufIn[inBytes++] + 1;
+									delta++;
+								}
+								else {
+									if (bufIn[inBytes] == 15) {
+										longueur = delta = bufIn[inBytes + 1] + 1;
+										inBytes += 2;
+									}
+									else {
+										if (bufIn[inBytes] > 1)
+											longueur = delta = bufIn[inBytes];
+										else
+											longueur = delta = 256;
 
-							inBytes++;
-						}
-					}
+										inBytes++;
+									}
+								}
 					for (; longueur-- > 0;) {
 						bufOut[outBytes] = bufOut[outBytes - delta];
 						outBytes++;
@@ -316,8 +317,7 @@ namespace ConvImgCpc {
 			WriteBit(1, outputData);
 		}
 
-		public int PackZX0(byte[] inputData, int inputSize, byte[] outputData, bool v2) {
-			Show();
+		private int PackZX0(byte[] inputData, int inputSize, byte[] outputData, bool v2) {
 			int bits, length;
 			int maxOffset = inputSize - 1 > MAX_OFFSET_ZX0 ? MAX_OFFSET_ZX0 : inputSize - 1 < 1 ? 1 : inputSize - 1;
 			int dots = 0;
@@ -465,7 +465,6 @@ namespace ConvImgCpc {
 			}
 			WriteBit(1, outputData);
 			WriteInterlacedEliasGammaZX0(256, outputData, v2);
-			Hide();
 			return outputSize;
 		}
 
@@ -483,7 +482,6 @@ namespace ConvImgCpc {
 		}
 
 		private int PackZX1(byte[] inputData, int inputSize, byte[] outputData) {
-			Show();
 			int bits, length;
 			int maxOffset = inputSize - 1 > MAX_OFFSET_ZX1 ? MAX_OFFSET_ZX1 : inputSize - 1 < 1 ? 1 : inputSize - 1;
 			int dots = 0;
@@ -573,28 +571,27 @@ namespace ConvImgCpc {
 				}
 				else
 					if (optimal.offset == lastOffset) {
-					WriteBit(0, outputData);
-					WriteInterlacedEliasGammaZX1(optimal.length, outputData);
-					inputIndex += optimal.length;
-				}
-				else {
-					WriteBit(1, outputData);
-					if (optimal.offset > 128) {
-						outputData[outputIndex++] = (byte)(255 - ((optimal.offset - 1) & 254));
-						outputData[outputIndex++] = (byte)(252 - (optimal.offset - 1) / 256 * 2 + optimal.offset % 2);
+						WriteBit(0, outputData);
+						WriteInterlacedEliasGammaZX1(optimal.length, outputData);
+						inputIndex += optimal.length;
 					}
-					else
-						outputData[outputIndex++] = (byte)(256 - optimal.offset * 2);
+					else {
+						WriteBit(1, outputData);
+						if (optimal.offset > 128) {
+							outputData[outputIndex++] = (byte)(255 - ((optimal.offset - 1) & 254));
+							outputData[outputIndex++] = (byte)(252 - (optimal.offset - 1) / 256 * 2 + optimal.offset % 2);
+						}
+						else
+							outputData[outputIndex++] = (byte)(256 - optimal.offset * 2);
 
-					WriteInterlacedEliasGammaZX1(optimal.length - 1, outputData);
-					inputIndex += optimal.length;
-					lastOffset = optimal.offset;
-				}
+						WriteInterlacedEliasGammaZX1(optimal.length - 1, outputData);
+						inputIndex += optimal.length;
+						lastOffset = optimal.offset;
+					}
 			}
 			WriteBit(1, outputData);
 			outputData[outputIndex++] = 255;
 			outputData[outputIndex++] = 255;
-			Hide();
 			return outputSize;
 		}
 
@@ -602,7 +599,10 @@ namespace ConvImgCpc {
 			return DepackStd(bufIn, startIn, bufOut);
 		}
 
-		public int Pack(byte[] bufIn, int lengthIn, byte[] bufOut, int lengthOut, Main.PackMethode pkMethode) {
+		public int Pack(byte[] bufIn, int lengthIn, byte[] bufOut, int lengthOut, Main.PackMethode pkMethode, bool extShow = false) {
+			if (!extShow)
+				Show();
+
 			int ret = 0;
 			switch (pkMethode) {
 				case Main.PackMethode.Standard:
@@ -635,6 +635,9 @@ namespace ConvImgCpc {
 					ret = PackZX0(bufTmp, posOut, bufOut, false);
 					break;
 			}
+			if (!extShow)
+				Hide();
+
 			return ret;
 		}
 	}

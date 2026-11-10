@@ -60,7 +60,7 @@ namespace ConvImgCpc {
 				}
 			}
 			bLigne[pos++] = 0;
-			int lpack = pk.Pack(bLigne, pos, bufOut, 0, pkMethode);
+			int lpack = pk.Pack(bLigne, pos, bufOut, 0, pkMethode, true);
 			sizeDepack = lpack + 2;
 			return lpack;
 		}
@@ -162,7 +162,7 @@ namespace ConvImgCpc {
 						pos += tailleX;
 					}
 				}
-				int lpack = pk.Pack(bLigne, pos, bufOut, 0, pkMethode);
+				int lpack = pk.Pack(bLigne, pos, bufOut, 0, pkMethode, true);
 				sizeDepack = length + 4;
 				return lpack;
 			}
@@ -202,7 +202,7 @@ namespace ConvImgCpc {
 						adr += d - 1;
 					}
 					else {
-						DiffImage[posDiff++] = (byte)deltaAdr;
+						DiffImage[posDiff++] = deltaAdr;
 						DiffImage[posDiff++] = n;
 						bc++;
 						deltaAdr = 0;
@@ -216,7 +216,7 @@ namespace ConvImgCpc {
 			BufTmp[0] = (byte)(bc);
 			BufTmp[1] = (byte)(bc >> 8);
 			Buffer.BlockCopy(DiffImage, 0, BufTmp, 2, posDiff);
-			int lPack = pk.Pack(BufTmp, posDiff + 2, bufOut, 0, pkMethode);
+			int lPack = pk.Pack(BufTmp, posDiff + 2, bufOut, 0, pkMethode, true);
 			Array.Copy(src, BufPrec, BufPrec.Length);
 			sizeDepack = posDiff + 2;
 			return lPack;
@@ -291,7 +291,7 @@ namespace ConvImgCpc {
 								Array.Copy(BufPrec, (l >> 3) * img.NbCol + (l & 7) * 0x800 + xDeb[i], bLigne, pos, nbOctets);
 								pos += nbOctets;
 							}
-							posBufOut = PackDepack.Pack(bLigne, length, bufOut, posBufOut);
+							posBufOut = PackDepack.Pack(bLigne, length, bufOut, posBufOut,true);
 							nbZone++;
 						}
 					}
@@ -336,7 +336,7 @@ namespace ConvImgCpc {
 				if (rbFrameFull.Checked) {
 					BufTmp[0] = (byte)'I';
 					lastAscii = 'I';
-					return pk.Pack(BufTmp, 1, bufOut, 0, pkMethode);
+					return pk.Pack(BufTmp, 1, bufOut, 0, pkMethode, true);
 				}
 				else {
 					img.main.SetInfo("Impossible d'ajouter image identique...");
@@ -346,7 +346,7 @@ namespace ConvImgCpc {
 			else {
 				BufTmp[0] = (byte)'O';
 				Array.Copy(img.BitmapCpc.imgAscii, 0, BufTmp, 1, tailleMax);
-				int lo = rbFrameO.Checked || imageMode ? pk.Pack(img.BitmapCpc.imgAscii, tailleMax, BufPrec, 0, pkMethode) : pk.Pack(BufTmp, tailleMax + 1, BufPrec, 0, pkMethode);
+				int lo = rbFrameO.Checked || imageMode ? pk.Pack(img.BitmapCpc.imgAscii, tailleMax, BufPrec, 0, pkMethode, true) : pk.Pack(BufTmp, tailleMax + 1, BufPrec, 0, pkMethode, true);
 				posDiff = Math.Min(lastPosDiff, posDiff);
 				if (rbFrameD.Checked || imageMode) {
 					BufTmp[0] = (byte)(posDiff >> 1);
@@ -360,7 +360,7 @@ namespace ConvImgCpc {
 					Array.Copy(DiffImage, 0, BufTmp, 3, posDiff);
 				}
 				int ldRaw = posDiff + (rbFrameD.Checked ? 2 : 3);
-				int ld = pk.Pack(BufTmp, ldRaw, bufOut, 0, pkMethode);
+				int ld = pk.Pack(BufTmp, ldRaw, bufOut, 0, pkMethode, true);
 				if (ld > ldRaw)
 					img.main.SetInfo("Perte de " + (ld - ldRaw).ToString() + " octets...");
 
@@ -439,7 +439,11 @@ namespace ConvImgCpc {
 
 			img.main.SetInfo("Début sauvegarde animation assembleur...");
 			img.main.Enabled = img.main.anim.Enabled = img.Enabled = false;
+			pk.Show();
 			for (int i = 0; i < (imageMode ? 1 : nbImages); i++) {
+				if (!imageMode)
+					pk.Text = "Compress " + (i + 1).ToString() + "/" + nbImages.ToString();
+
 				if (!imageMode) {
 					img.main.SelectImage(i, true);
 					img.Convert(!img.BitmapCpc.isCalc, true);
@@ -462,6 +466,7 @@ namespace ConvImgCpc {
 				}
 				maxDepack = Math.Max(maxDepack, sizeDepack);
 			}
+			pk.Hide();
 
 			// Sauvegarde
 			StreamWriter sw = SaveAsm.OpenAsm(fileName, version, true);
