@@ -10,9 +10,9 @@ namespace ConvImgCpc {
 			int xStart = (Width / 2) - 24 * Cpc.MaxPen(0);
 			for (int i = 0; i < Cpc.MaxPen(0); i++) {
 				int col = Cpc.Palette[i];
-				int r = ((col & 0x0F) * 17);
-				int v = (((col & 0xF00) >> 8) * 17);
-				int b = (((col & 0xF0) >> 4) * 17);
+				int r = (col & 0x0F) * 17;
+				int v = ((col & 0xF00) >> 8) * 17;
+				int b = ((col & 0xF0) >> 4) * 17;
 				Label l = new Label {
 					BorderStyle = BorderStyle.FixedSingle,
 					Location = new Point(xStart + i * 48, 48),

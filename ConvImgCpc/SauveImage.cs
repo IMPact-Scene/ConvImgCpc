@@ -538,7 +538,7 @@ namespace ConvImgCpc {
 					sw.WriteLine("	RUN	$");
 					sw.WriteLine("_StartDepack:");
 					if (Cpc.modeVirtuel == 3 || Cpc.modeVirtuel == 4)
-						SaveAsm.GenereAfficheModeEgx(sw, Cpc.Palette, overscan, compact, labelMedia, labelPalette);
+						SaveAsm.GenereAfficheModeEgx(sw, overscan, compact, labelMedia, labelPalette);
 					else {
 						if (Cpc.modeVirtuel == 5)
 							SaveAsm.GenereAfficheModeX(sw, colMode5, overscan, compact, labelMedia);
@@ -546,7 +546,6 @@ namespace ConvImgCpc {
 							SaveAsm.GenereAfficheStd(sw, overscan, compact, labelMedia, labelPalette);
 					}
 				}
-				if (param.withPalette && (Cpc.modeVirtuel < 3 || Cpc.modeVirtuel > 5))
 					SaveAsm.GenerePalette(sw, param, param.withCode, param.withCode, dlgSave.LabelPal);
 
 				SaveAsm.CloseAsm(sw);
