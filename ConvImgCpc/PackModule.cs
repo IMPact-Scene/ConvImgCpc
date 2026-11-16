@@ -5,20 +5,21 @@ namespace ConvImgCpc {
 	public partial class PackModule : Form {
 		private const int SEEKBACK = 0x1000;
 		private const int MAXSTRING = 256;
-
 		private const int MAX_OFFSET_ZX0 = 32640;
 		private const int MAX_OFFSET_ZX1 = 32512;
 		private const int MAX_SCALE = 50;
+		private const int MAX_CHAIN = 4096;
+		private const int ZX_INF = 1 << 30;
+		private int[] zxNBits, zxNIdx, zxNOff, zxNPrev;     // noeuds : bits, index de fin, offset (0 = littéral), noeud précédent
+		private int zxNCount, zxMaxOff;
+		private int[] zxMBase, zxMIdx, zxMPrev, zxMNode, zxLNode, zxLNodeIdx, zxTabNode, zxTabBits;
 
-		private readonly int[] matches = new int[MAXSTRING];
-		private readonly int[,] matchtable = new int[MAXSTRING, SEEKBACK];
-		private Block ghostRoot;
 		private int outputIndex, bitIndex, bitMask;
 		private bool backTrack;
 
 		public PackModule() {
 			InitializeComponent();
-			this.Text = "Compress...";
+			Text = "Compress...";
 		}
 
 		private int DepackStd(byte[] bufIn, int startIn, byte[] bufOut) {
@@ -89,199 +90,154 @@ namespace ConvImgCpc {
 			return (outBytes);
 		}
 
+		// Taille (en octets) du code d'un match de longueur 'length' à la distance 'offset'
+		private static int StdMatchBytes(int length, int offset) {
+			if (offset == length)
+				return length == MAXSTRING || length <= 14 ? 1 : 2;
+
+			if (length == 2 && offset < 65)
+				return 1;
+
+			if ((length <= 33 && offset < 257) || (length >= 3 && length <= 10))
+				return 2;
+			return 3;
+		}
+
+		// Écrit le code d'un match dans 'code' (mêmes formats que l'ancien PackStd), retourne le nombre d'octets
+		private static int StdWriteMatch(byte[] code, int pos, int length, int offset) {
+			if (offset == length) {
+				if (length == MAXSTRING) {
+					code[pos] = 0x01;
+					return 1;
+				}
+				if (length <= 14) {
+					code[pos] = (byte)length;
+					return 1;
+				}
+				code[pos] = 0x0F;
+				code[pos + 1] = (byte)(length - 1);
+				return 2;
+			}
+			if (length == 2 && offset < 65) {
+				code[pos] = (byte)(0x40 + offset - 1);
+				return 1;
+			}
+			if (length <= 33 && offset < 257) {
+				code[pos] = (byte)(0x20 + length - 2);
+				code[pos + 1] = (byte)(offset - 1);
+				return 2;
+			}
+			if (length >= 3 && length <= 10) {
+				code[pos] = (byte)(0x80 + ((length - 3) << 4) + ((offset - 1) >> 8));
+				code[pos + 1] = (byte)(offset - 1);
+				return 2;
+			}
+			code[pos] = (byte)(0x10 + ((offset - 1) >> 8));
+			code[pos + 1] = (byte)(offset - 1);
+			code[pos + 2] = (byte)(length - 1);
+			return 3;
+		}
+
 		private int PackStd(byte[] bufIn, int lengthIn, byte[] bufOut, int lengthOut) {
-			byte[] codebuffer = new byte[24];
-			byte bits = 0;
-			int count = 0, bitcount = 0, codecount = 0;
-			int matchtablestart = 0, matchtableend = 0, oldmatchtablestart;
-			int start, end, max, b, c, d;
+			int n = lengthIn;
 
-			for (int i = 0; i < matches.Length; i++)
-				matches[i] = 0;
+			// Chaînes de hachage sur 2 octets : prev[i] = position précédente (la plus proche) commençant par les mêmes 2 octets
+			int[] head = new int[65536];
+			for (int i = 0; i < head.Length; i++)
+				head[i] = -1;
+			int[] prev = new int[n + 1];
+			for (int i = 0; i < n; i++)
+				prev[i] = -1;
+			for (int i = 0; i < n - 1; i++) {
+				int key = bufIn[i] | (bufIn[i + 1] << 8);
+				prev[i] = head[key];
+				head[key] = i;
+			}
 
-			while (true) {
-				for (c = matchtableend; c < count; c++) {
-					b = bufIn[c];
-					matchtable[b, matches[b]] = c;
-					matches[b]++;
-				}
-				matchtableend = count;
-
-				if (count >= 2) {
-					int stlen = 0;
-					int stpos = 0;
-					int stlen2 = 0;
-					int bb = bufIn[count];
-					for (c = matches[bb] - 1; c >= 0; c--) {
-						start = matchtable[bb, c];
-						end = start + MAXSTRING;
-						if (end > count)
-							end = count;
-
-						max = end - start;
-						if (max >= stlen) {
-							for (d = 1; d < max; d++)
-								if (start + d >= lengthIn || count + d >= lengthIn || bufIn[start + d] != bufIn[count + d])
-									break;
-
-							if ((d >= 2) && (d > stlen)) {
-								stlen = d;
-								stpos = count - start;
-							}
-							if ((d == stlen) && (count - start < stpos))
-								stpos = count - start;
-						}
-
-						if ((stlen == MAXSTRING) && (stpos == stlen))
+			// Programmation dynamique, de la fin vers le début : cost[i] = nombre de bits minimal pour coder bufIn[i..]
+			// (littéral = 1 + 8 bits ; copie = 1 bit + 8 bits par octet de code)
+			int[] cost = new int[n + 1];
+			int[] chLen = new int[n + 1];
+			int[] chOff = new int[n + 1];
+			int[] omin = new int[MAXSTRING + 2];        // plus petit offset permettant une copie de longueur L
+			int[] runOff = new int[MAXSTRING + 2];      // offsets utilisables sous la forme "offset == longueur"
+			for (int i = n - 1; i >= 0; i--) {
+				int best = 9 + cost[i + 1];
+				int bestLen = 0, bestOff = 0;
+				if (i < n - 1) {
+					int maxg = Math.Min(MAXSTRING, n - i);
+					int longest = 1, nbRun = 0, steps = 0;
+					for (int j = prev[i]; j >= 0; j = prev[j]) {
+						int off = i - j;
+						if (off > SEEKBACK || ++steps > MAX_CHAIN)
 							break;
-					}
-					if (count + 1 < lengthIn) {
-						bb = bufIn[count + 1];
-						for (c = matches[bb] - 1; c >= 0; c--) {
-							start = matchtable[bb, c];
-							end = start + MAXSTRING;
-							if (end > count + 1)
-								end = count + 1;
 
-							max = end - start;
-							if (max >= stlen2) {
-								for (d = 1; d < max; d++)
-									if (start + d >= lengthIn || count + d + 1 >= lengthIn || bufIn[start + d] != bufIn[count + d + 1])
-										break;
+						if (longest >= maxg && off > MAXSTRING)
+							break;
 
-								if ((d >= 2) && (d >= stlen2))
-									stlen2 = d;
-							}
-							if (stlen2 == MAXSTRING)
-								break;
+						int maxl = Math.Min(maxg, off);
+						if (maxl < 2)
+							continue;
+
+						int m = 2;
+						while (m < maxl && bufIn[j + m] == bufIn[i + m])
+							m++;
+
+						if (m > longest) {
+							for (int l = longest + 1; l <= m; l++)
+								omin[l] = off;
+							longest = m;
 						}
-						if (stlen2 - 1 > stlen)
-							stlen = 0;
+						if (off >= 2 && off <= maxg && m >= off)
+							runOff[nbRun++] = off;
 					}
-
-					if (stlen > 1) {
-						if ((stlen == 2) && (stpos >= MAXSTRING)) {
-							codebuffer[codecount++] = bufIn[count++];
-							bitcount++;
-						}
-						else {
-							if (stpos == stlen) {
-								if (stlen == MAXSTRING)
-									codebuffer[codecount++] = 0x1;
-								else {
-									if (stlen <= 14)
-										codebuffer[codecount++] = (byte)stlen;
-									else {
-										codebuffer[codecount++] = 0x0F;
-										codebuffer[codecount++] = (byte)(stlen - 1);
-									}
-								}
-							}
-							else {
-								if ((stlen == 2) && (stpos < 65))
-									codebuffer[codecount++] = (byte)(0x40 + stpos - 1);
-								else {
-									if ((stlen <= 33) && (stpos < 257)) {
-										codebuffer[codecount++] = (byte)(0x20 + stlen - 2);
-										codebuffer[codecount++] = (byte)(stpos - 1);
-									}
-									else {
-										if ((stlen >= 3) && (stlen <= 10)) {
-											codebuffer[codecount++] = (byte)(0x80 + ((stlen - 3) << 4) + ((stpos - 1) >> 8));
-											codebuffer[codecount++] = (byte)(stpos - 1);
-										}
-										else {
-											codebuffer[codecount++] = (byte)(0x10 + ((stpos - 1) >> 8));
-											codebuffer[codecount++] = (byte)(stpos - 1);
-											codebuffer[codecount++] = (byte)(stlen - 1);
-										}
-									}
-								}
-							}
-							bits = (byte)(bits | (1 << bitcount));
-							bitcount++;
-							count += stlen;
+					for (int l = 2; l <= longest; l++) {
+						int cc = 1 + 8 * StdMatchBytes(l, omin[l]) + cost[i + l];
+						if (cc < best) {
+							best = cc;
+							bestLen = l;
+							bestOff = omin[l];
 						}
 					}
-					else {
-						codebuffer[codecount++] = bufIn[count++];
-						bitcount++;
+					for (int r = 0; r < nbRun; r++) {
+						int l = runOff[r];
+						int cc = 1 + 8 * StdMatchBytes(l, l) + cost[i + l];
+						if (cc < best) {
+							best = cc;
+							bestLen = l;
+							bestOff = l;
+						}
 					}
 				}
+				cost[i] = best;
+				chLen[i] = bestLen;
+				chOff[i] = bestOff;
+			}
+
+			// Écriture : 8 codes par octet de drapeaux (bit à 1 = copie), puis code de fin
+			byte[] code = new byte[24];
+			int bits = 0, bitcount = 0, codecount = 0, pos = 0;
+			while (pos < n) {
+				int len = chLen[pos];
+				if (len == 0)
+					code[codecount++] = bufIn[pos++];
 				else {
-					codebuffer[codecount++] = bufIn[count++];
-					bitcount++;
+					codecount += StdWriteMatch(code, codecount, len, chOff[pos]);
+					bits |= 1 << bitcount;
+					pos += len;
 				}
+				bitcount++;
 				if (bitcount == 8) {
-					bufOut[lengthOut++] = bits;
-					System.Array.Copy(codebuffer, 0, bufOut, lengthOut, codecount);
+					bufOut[lengthOut++] = (byte)bits;
+					Array.Copy(code, 0, bufOut, lengthOut, codecount);
 					lengthOut += codecount;
-					bitcount = codecount = 0;
-					bits = 0;
-				}
-				if (count >= lengthIn)
-					break;
-
-				oldmatchtablestart = matchtablestart;
-				matchtablestart = count - SEEKBACK;
-				if (matchtablestart < 0)
-					matchtablestart = 0;
-
-				for (c = oldmatchtablestart; c < matchtablestart; c++) {
-					b = bufIn[c];
-					for (d = 0; d < matches[b]; d++)
-						if (matchtable[b, d] >= matchtablestart) {
-							System.Buffer.BlockCopy(matchtable, ((b * SEEKBACK) + d) * sizeof(int), matchtable, b * SEEKBACK * sizeof(int), (matches[b] - d) * sizeof(int));
-							break;
-						}
-
-					matches[b] -= d;
+					bitcount = codecount = bits = 0;
 				}
 			}
-			codebuffer[codecount++] = 0;
+			code[codecount++] = 0;
 			bufOut[lengthOut++] = (byte)(bits | (1 << bitcount));
-			System.Array.Copy(codebuffer, 0, bufOut, lengthOut, codecount);
-			return (lengthOut + codecount);
-		}
-
-		private Block Allocate(int bits, int index, int offset, Block chain) {
-			Block ptr;
-
-			if (ghostRoot == null)
-				ptr = new Block();
-			else {
-				ptr = ghostRoot;
-				ghostRoot = ptr.ghostChain;
-				if (ptr.chain != null && --ptr.chain.references == 0) {
-					ptr.chain.ghostChain = ghostRoot;
-					ghostRoot = ptr.chain;
-				}
-			}
-			ptr.bits = bits;
-			ptr.index = index;
-			ptr.offset = offset;
-			if (chain != null)
-				chain.references++;
-
-			ptr.chain = chain;
-			ptr.references = 0;
-			return ptr;
-		}
-
-		private void Assign(ref Block ptr, Block chain) {
-			chain.references++;
-			if (ptr != null && --ptr.references == 0) {
-				ptr.ghostChain = ghostRoot;
-				ghostRoot = ptr;
-			}
-			ptr = chain;
-		}
-
-		private int EliasGammaBits(int value) {
-			int bits = 1;
-			while ((value >>= 1) != 0)
-				bits += 2;
-			return bits;
+			Array.Copy(code, 0, bufOut, lengthOut, codecount);
+			return lengthOut + codecount;
 		}
 
 		private void WriteBit(int value, byte[] outputData) {
@@ -317,155 +273,258 @@ namespace ConvImgCpc {
 			WriteBit(1, outputData);
 		}
 
-		private int PackZX0(byte[] inputData, int inputSize, byte[] outputData, bool v2) {
-			int bits, length;
-			int maxOffset = inputSize - 1 > MAX_OFFSET_ZX0 ? MAX_OFFSET_ZX0 : inputSize - 1 < 1 ? 1 : inputSize - 1;
-			int dots = 0;
-			Block[] lastLiteral = new Block[maxOffset + 1];
-			Block[] lastMatch = new Block[maxOffset + 1];
-			Block[] tabOptimal = new Block[inputSize + 1];
-			int[] matchLength = new int[maxOffset + 1];
-			int[] bestLength = new int[inputSize + 2];
+		private int ZxNewNode(int bits, int idx, int off, int prev) {
+			int id = zxNCount++;
+			zxNBits[id] = bits;
+			zxNIdx[id] = idx;
+			zxNOff[id] = off;
+			zxNPrev[id] = prev;
+			return id;
+		}
 
-			bestLength[2] = 2;
-			Block chain = Allocate(-1, 0 - 1, 1, null);
-			chain.references++;
-			if (lastMatch[1] != null && --lastMatch[1].references == 0) {
-				lastMatch[1].ghostChain = ghostRoot;
-				ghostRoot = lastMatch[1];
+		// Noeud correspondant au dernier bloc "copie" de l'offset o (créé seulement si nécessaire)
+		private int ZxMatM(int o) {
+			if (zxMNode[o] < 0)
+				zxMNode[o] = ZxNewNode(zxMBase[o] + 8 * zxMIdx[o], zxMIdx[o], o, zxMPrev[o]);
+			return zxMNode[o];
+		}
+
+		private void ZxMark(bool[] mark, int id) {
+			while (id >= 0 && !mark[id]) {
+				mark[id] = true;
+				id = zxNPrev[id];
 			}
-			lastMatch[1] = chain;
-			for (int index = 0; index < inputSize; index++) {
-				int bestLengthSize = 2;
-				maxOffset = index > MAX_OFFSET_ZX0 ? MAX_OFFSET_ZX0 : index < 1 ? 1 : index;
+		}
+
+		// Ramasse-miettes : ne conserve que les noeuds accessibles depuis les meilleurs blocs et les états des offsets
+		private void ZxCollect(int index) {
+			int cnt = zxNCount;
+			bool[] mark = new bool[cnt];
+			int[] remap = new int[cnt];
+			for (int x = 0; x < index; x++)
+				ZxMark(mark, zxTabNode[x]);
+
+			for (int o = 1; o <= zxMaxOff; o++) {
+				ZxMark(mark, zxMPrev[o]);
+				ZxMark(mark, zxMNode[o]);
+				ZxMark(mark, zxLNode[o]);
+			}
+			int k = 0;
+			for (int id = 0; id < cnt; id++) {
+				if (mark[id]) {
+					remap[id] = k;
+					int prev = zxNPrev[id];
+					zxNBits[k] = zxNBits[id];
+					zxNIdx[k] = zxNIdx[id];
+					zxNOff[k] = zxNOff[id];
+					zxNPrev[k] = prev >= 0 ? remap[prev] : -1;
+					k++;
+				}
+				else
+					remap[id] = -1;
+			}
+			for (int x = 0; x < index; x++)
+				if (zxTabNode[x] >= 0)
+					zxTabNode[x] = remap[zxTabNode[x]];
+
+			for (int o = 1; o <= zxMaxOff; o++) {
+				if (zxMPrev[o] >= 0)
+					zxMPrev[o] = remap[zxMPrev[o]];
+
+				if (zxMNode[o] >= 0)
+					zxMNode[o] = remap[zxMNode[o]];
+
+				if (zxLNode[o] >= 0)
+					zxLNode[o] = remap[zxLNode[o]];
+			}
+			zxNCount = k;
+		}
+
+		private void ZxGrow(int cap) {
+			Array.Resize(ref zxNBits, cap);
+			Array.Resize(ref zxNIdx, cap);
+			Array.Resize(ref zxNOff, cap);
+			Array.Resize(ref zxNPrev, cap);
+		}
+
+		//
+		// Parcours optimal ZX0 / ZX1 (zx1 : coût d'un nouvel offset de ZX1, limite d'offset 'limit'). Retourne le nombre de bits ;
+		// parseIdx / parseOff = index de fin et offset (0 = littéral) de chaque bloc, dans l'ordre. État par offset o (valeurs, sans bloc) :
+		//   zxMBase[o] = bits - 8 * index du dernier bloc "copie" (ZX_INF = aucun), zxMIdx[o] = son index, zxMPrev[o] = son précédent ;
+		//   le bloc littéral qui le suit se calcule par une formule, et n'est créé que si une copie depuis le dernier offset le suit.
+		//
+		private int ZxOptimize(byte[] inputData, int inputSize, int limit, bool zx1, out int[] parseIdx, out int[] parseOff, out int parseCount) {
+			int n = inputSize;
+			int mo = n - 1 > limit ? limit : n - 1 < 1 ? 1 : n - 1;
+			zxMaxOff = mo;
+			int[] mlen = new int[mo + 1];
+			int[] eqLast = new int[mo + 1];
+			int[] lBitsCur = new int[mo + 1];
+			int[] lIdxCur = new int[mo + 1];
+			int[] egOff = new int[mo + 1];      // coût en bits d'un nouvel offset (sans la longueur)
+			bool[] lFlag = new bool[mo + 1];
+			int[] mBase = zxMBase = new int[mo + 1];
+			int[] mIdx = zxMIdx = new int[mo + 1];
+			zxMPrev = new int[mo + 1];
+			zxMNode = new int[mo + 1];
+			zxLNode = new int[mo + 1];
+			zxLNodeIdx = new int[mo + 1];
+			int[] tabNode = zxTabNode = new int[n + 1];
+			int[] tabBits = zxTabBits = new int[n + 1];
+			int[] bestLength = new int[n + 2];
+			int[] egTab = new int[n + 3];
+			for (int v = 0; v < egTab.Length; v++) {
+				int b = 1, x = v;
+				while ((x >>= 1) != 0)
+					b += 2;
+				egTab[v] = b;
+			}
+			for (int o = 1; o <= mo; o++) {
+				mBase[o] = ZX_INF;
+				zxMPrev[o] = -1;
+				zxMNode[o] = -1;
+				zxLNode[o] = -1;
+				zxLNodeIdx[o] = -2;
+				eqLast[o] = -2;
+				egOff[o] = zx1 ? 1 + (o > 128 ? 16 : 8) : 8 + egTab[(o - 1) / 128 + 1];
+			}
+			int cap = 1 << 18;
+			zxNBits = new int[cap];
+			zxNIdx = new int[cap];
+			zxNOff = new int[cap];
+			zxNPrev = new int[cap];
+			zxNCount = 0;
+
+			// bloc fictif de départ (bits = -1, index = -1, offset = 1)
+			mBase[1] = 7;
+			mIdx[1] = -1;
+			bestLength[2] = 2;
+			int dots = 0;
+			for (int index = 0; index < n; index++) {
+				int maxOffset = index > limit ? limit : index < 1 ? 1 : index;
+				if (zxNCount + 2 * maxOffset + 16 > zxNBits.Length) {
+					ZxCollect(index);
+					if (zxNCount + 4 * maxOffset + 64 > zxNBits.Length)
+						ZxGrow(Math.Max(2 * zxNBits.Length, zxNCount + 8 * maxOffset + 4096));
+				}
+				int bestLengthSize = 2, best = ZX_INF, wOff = 0, wKind = 0;
+				byte cur = inputData[index];
+				int i8 = 8 * index + 1;
 				for (int offset = 1; offset <= maxOffset; offset++) {
-					if (index != 0 && index >= offset && inputData[index] == inputData[index - offset]) {
-						if (lastLiteral[offset] != null) {
-							length = index - lastLiteral[offset].index;
-							bits = lastLiteral[offset].bits + 1 + EliasGammaBits(length);
-							chain = Allocate(bits, index, offset, lastLiteral[offset]);
-							chain.references++;
-							if (lastMatch[offset] != null && --lastMatch[offset].references == 0) {
-								lastMatch[offset].ghostChain = ghostRoot;
-								ghostRoot = lastMatch[offset];
-							}
-							lastMatch[offset] = chain;
-							if (tabOptimal[index] == null || tabOptimal[index].bits > bits) {
-								chain = lastMatch[offset];
-								chain.references++;
-								if (tabOptimal[index] != null && --tabOptimal[index].references == 0) {
-									tabOptimal[index].ghostChain = ghostRoot;
-									ghostRoot = tabOptimal[index];
+					if (index != 0 && inputData[index - offset] == cur) {
+						int ml;
+						if (eqLast[offset] == index - 1)
+							ml = ++mlen[offset];
+						else {
+							ml = mlen[offset] = 1;
+							bool has = mBase[offset] < ZX_INF;
+							lFlag[offset] = has;
+							if (has) {
+								// bloc littéral qui précède cette série d'égalités : créé seulement maintenant
+								int len = index - 1 - mIdx[offset];
+								int lb = mBase[offset] + 8 * mIdx[offset] + 1 + egTab[len] + 8 * len;
+								int ln;
+								if (zxLNodeIdx[offset] == index - 1)
+									ln = zxLNode[offset];
+								else {
+									int pm = ZxMatM(offset);
+									ln = ZxNewNode(lb, index - 1, 0, pm);
 								}
-								tabOptimal[index] = chain;
+								zxLNode[offset] = ln;
+								zxLNodeIdx[offset] = index - 1;
+								lBitsCur[offset] = lb;
+								lIdxCur[offset] = index - 1;
 							}
 						}
-						if (++matchLength[offset] > 1) {
-							if (bestLengthSize < matchLength[offset]) {
-								bits = tabOptimal[index - bestLength[bestLengthSize]].bits + EliasGammaBits(bestLength[bestLengthSize] - 1);
+						eqLast[offset] = index;
+						if (lFlag[offset]) {
+							// copie depuis le dernier offset
+							int bitsR = lBitsCur[offset] + 1 + egTab[index - lIdxCur[offset]];
+							mBase[offset] = bitsR - 8 * index;
+							mIdx[offset] = index;
+							zxMPrev[offset] = zxLNode[offset];
+							zxMNode[offset] = -1;
+							if (bitsR < best) {
+								best = bitsR;
+								wOff = offset;
+								wKind = 0;
+							}
+						}
+						if (ml > 1) {
+							// copie depuis un nouvel offset
+							if (bestLengthSize < ml) {
+								int bits = tabBits[index - bestLength[bestLengthSize]] + egTab[bestLength[bestLengthSize] - 1];
 								do {
 									bestLengthSize++;
-									int bits2 = tabOptimal[index - bestLengthSize].bits + EliasGammaBits(bestLengthSize - 1);
+									int bits2 = tabBits[index - bestLengthSize] + egTab[bestLengthSize - 1];
 									if (bits2 <= bits) {
 										bestLength[bestLengthSize] = bestLengthSize;
 										bits = bits2;
 									}
 									else
 										bestLength[bestLengthSize] = bestLength[bestLengthSize - 1];
-
-								} while (bestLengthSize < matchLength[offset]);
+								} while (bestLengthSize < ml);
 							}
-							length = bestLength[matchLength[offset]];
-							bits = tabOptimal[index - length].bits + 8 + EliasGammaBits((offset - 1) / 128 + 1) + EliasGammaBits(length - 1);
-							if (lastMatch[offset] == null || lastMatch[offset].index != index || lastMatch[offset].bits > bits) {
-								chain = Allocate(bits, index, offset, tabOptimal[index - length]);
-								chain.references++;
-								if (lastMatch[offset] != null && --lastMatch[offset].references == 0) {
-									lastMatch[offset].ghostChain = ghostRoot;
-									ghostRoot = lastMatch[offset];
-								}
-								lastMatch[offset] = chain;
-								if (tabOptimal[index] == null || tabOptimal[index].bits > bits) {
-									chain = lastMatch[offset];
-									chain.references++;
-									if (tabOptimal[index] != null && --tabOptimal[index].references == 0) {
-										tabOptimal[index].ghostChain = ghostRoot;
-										ghostRoot = tabOptimal[index];
-									}
-									tabOptimal[index] = chain;
+							int length = bestLength[ml];
+							int bitsN = tabBits[index - length] + egOff[offset] + egTab[length - 1];
+							if (mBase[offset] >= ZX_INF || mIdx[offset] != index || mBase[offset] + 8 * index > bitsN) {
+								mBase[offset] = bitsN - 8 * index;
+								mIdx[offset] = index;
+								zxMPrev[offset] = tabNode[index - length];
+								zxMNode[offset] = -1;
+								if (bitsN < best) {
+									best = bitsN;
+									wOff = offset;
+									wKind = 0;
 								}
 							}
 						}
 					}
 					else {
-						matchLength[offset] = 0;
-						if (lastMatch[offset] != null) {
-							length = index - lastMatch[offset].index;
-							bits = lastMatch[offset].bits + 1 + EliasGammaBits(length) + (length << 3);
-							chain = Allocate(bits, index, 0, lastMatch[offset]);
-							chain.references++;
-							if (lastLiteral[offset] != null && --lastLiteral[offset].references == 0) {
-								lastLiteral[offset].ghostChain = ghostRoot;
-								ghostRoot = lastLiteral[offset];
-							}
-							lastLiteral[offset] = chain;
-							if (tabOptimal[index] == null || tabOptimal[index].bits > bits) {
-								chain = lastLiteral[offset];
-								chain.references++;
-								if (tabOptimal[index] != null && --tabOptimal[index].references == 0) {
-									tabOptimal[index].ghostChain = ghostRoot;
-									ghostRoot = tabOptimal[index];
-								}
-								tabOptimal[index] = chain;
-							}
+						// bloc littéral candidat (offset sans copie : valeur énorme, jamais retenue)
+						int c = mBase[offset] + i8 + egTab[index - mIdx[offset]];
+						if (c < best) {
+							best = c;
+							wOff = offset;
+							wKind = 1;
 						}
 					}
 				}
+				int node;
+				if (wKind == 1) {
+					int pm = ZxMatM(wOff);
+					node = ZxNewNode(best, index, 0, pm);
+					zxLNode[wOff] = node;
+					zxLNodeIdx[wOff] = index;
+				}
+				else
+					node = ZxMatM(wOff);
+				tabNode[index] = node;
+				tabBits[index] = best;
 				if (index * MAX_SCALE / inputSize > dots) {
 					progressBar1.Value = 100 * ++dots / MAX_SCALE;
 					Application.DoEvents();
 				}
 			}
-			Block prev = null, next, optimal = tabOptimal[inputSize - 1];
-			int outputSize = (optimal.bits + 25) / 8;
-			while (optimal != null) {
-				next = optimal.chain;
-				optimal.chain = prev;
-				prev = optimal;
-				optimal = next;
-			}
-			outputIndex = 0;
-			bitMask = 0;
-			int lastOffset = 1;
-			int inputIndex = 0;
-			backTrack = true;
-			for (optimal = prev.chain; optimal != null; prev = optimal, optimal = optimal.chain) {
-				length = optimal.index - prev.index;
 
-				if (optimal.offset == 0) {
-					WriteBit(0, outputData);
-					WriteInterlacedEliasGammaZX0(length, outputData, false);
-					for (int i = 0; i < length; i++)
-						outputData[outputIndex++] = inputData[inputIndex++];
-				}
-				else if (optimal.offset == lastOffset) {
-					WriteBit(0, outputData);
-					WriteInterlacedEliasGammaZX0(length, outputData, false);
-					inputIndex += length;
-				}
-				else {
-					WriteBit(1, outputData);
-					WriteInterlacedEliasGammaZX0((optimal.offset - 1) / 128 + 1, outputData, v2);
-					outputData[outputIndex++] = (byte)((127 - (optimal.offset - 1) % 128) << 1);
-					backTrack = true;
-					WriteInterlacedEliasGammaZX0(length - 1, outputData, false);
-					inputIndex += length;
-					lastOffset = optimal.offset;
-				}
+			int total = tabBits[n - 1];
+			int cnt = 0;
+			for (int id = tabNode[n - 1]; id >= 0 && zxNIdx[id] >= 0; id = zxNPrev[id])
+				cnt++;
+			parseIdx = new int[cnt];
+			parseOff = new int[cnt];
+			int p = cnt;
+			for (int id = tabNode[n - 1]; id >= 0 && zxNIdx[id] >= 0; id = zxNPrev[id]) {
+				p--;
+				parseIdx[p] = zxNIdx[id];
+				parseOff[p] = zxNOff[id];
 			}
-			WriteBit(1, outputData);
-			WriteInterlacedEliasGammaZX0(256, outputData, v2);
-			return outputSize;
+			parseCount = cnt;
+
+			// libération de la mémoire
+			zxNBits = zxNIdx = zxNOff = zxNPrev = null;
+			zxMBase = zxMIdx = zxMPrev = zxMNode = zxLNode = zxLNodeIdx = zxTabNode = zxTabBits = null;
+			return total;
 		}
 
 		private void WriteInterlacedEliasGammaZX1(int value, byte[] outputData) {
@@ -481,113 +540,87 @@ namespace ConvImgCpc {
 			WriteBit(0, outputData);
 		}
 
-		private int PackZX1(byte[] inputData, int inputSize, byte[] outputData) {
-			int bits, length;
-			int maxOffset = inputSize - 1 > MAX_OFFSET_ZX1 ? MAX_OFFSET_ZX1 : inputSize - 1 < 1 ? 1 : inputSize - 1;
-			int dots = 0;
-			Block[] lastLiteral = new Block[maxOffset + 1];
-			Block[] lastMatch = new Block[maxOffset + 1];
-			Block[] tabOptimal = new Block[inputSize + 1];
-			int[] matchLength = new int[maxOffset + 1];
-			int[] bestLength = new int[inputSize + 2];
+		private int PackZX0(byte[] inputData, int inputSize, byte[] outputData, bool v2) {
+			int totalBits = ZxOptimize(inputData, inputSize, MAX_OFFSET_ZX0, false, out int[] parseIdx, out int[] parseOff, out int parseCount);
+			int outputSize = (totalBits + 25) / 8;
 
-			bestLength[2] = 2;
-			Assign(ref lastMatch[1], Allocate(-1, -1, 1, null));
-			for (int index = 0; index < inputSize; index++) {
-				int bestLengthSize = 2;
-				maxOffset = index > MAX_OFFSET_ZX1 ? MAX_OFFSET_ZX1 : index < 1 ? 1 : index;
-				for (int offset = 1; offset <= maxOffset; offset++) {
-					if (index != 0 && index >= offset && inputData[index] == inputData[index - offset]) {
-						if (lastLiteral[offset] != null) {
-							length = index - lastLiteral[offset].index;
-							bits = lastLiteral[offset].bits + 1 + EliasGammaBits(length);
-							Assign(ref lastMatch[offset], Allocate(bits, index, offset, lastLiteral[offset]));
-							if (tabOptimal[index] == null || tabOptimal[index].bits > bits)
-								Assign(ref tabOptimal[index], lastMatch[offset]);
-						}
-						if (++matchLength[offset] > 1) {
-							if (bestLengthSize < matchLength[offset]) {
-								bits = tabOptimal[index - bestLength[bestLengthSize]].bits + EliasGammaBits(bestLength[bestLengthSize] - 1);
-								do {
-									bestLengthSize++;
-									int bits2 = tabOptimal[index - bestLengthSize].bits + EliasGammaBits(bestLengthSize - 1);
-									if (bits2 <= bits) {
-										bestLength[bestLengthSize] = bestLengthSize;
-										bits = bits2;
-									}
-									else
-										bestLength[bestLengthSize] = bestLength[bestLengthSize - 1];
-								}
-								while (bestLengthSize < matchLength[offset]);
-							}
-							length = bestLength[matchLength[offset]];
-							bits = tabOptimal[index - length].bits + 1 + (offset > 128 ? 16 : 8) + EliasGammaBits(length - 1);
-							if (lastMatch[offset] == null || lastMatch[offset].index != index || lastMatch[offset].bits > bits) {
-								Assign(ref lastMatch[offset], Allocate(bits, index, offset, tabOptimal[index - length]));
-								if (tabOptimal[index] == null || tabOptimal[index].bits > bits)
-									Assign(ref tabOptimal[index], lastMatch[offset]);
-							}
-						}
-					}
-					else {
-						matchLength[offset] = 0;
-						if (lastMatch[offset] != null) {
-							length = index - lastMatch[offset].index;
-							bits = lastMatch[offset].bits + 1 + EliasGammaBits(length) + length * 8;
-							Assign(ref lastLiteral[offset], Allocate(bits, index, 0, lastMatch[offset]));
-							if (tabOptimal[index] == null || tabOptimal[index].bits > bits)
-								Assign(ref tabOptimal[index], lastLiteral[offset]);
-						}
-					}
-				}
-				if (index * MAX_SCALE / inputSize > dots) {
-					progressBar1.Value = 100 * ++dots / MAX_SCALE;
-					Application.DoEvents();
-				}
-			}
-			Block prev, next = null, optimal = tabOptimal[inputSize - 1];
-			int outputSize = (optimal.bits + 24) / 8;
-			while (optimal != null) {
-				prev = optimal.chain;
-				optimal.chain = next;
-				next = optimal;
-				optimal = prev;
-			}
 			outputIndex = 0;
 			bitMask = 0;
 			int lastOffset = 1;
 			int inputIndex = 0;
+			int prevIndex = -1;
+			backTrack = true;
+			for (int b = 0; b < parseCount; b++) {
+				int length = parseIdx[b] - prevIndex;
+				int offset = parseOff[b];
+				prevIndex = parseIdx[b];
+				if (offset == 0) {
+					WriteBit(0, outputData);
+					WriteInterlacedEliasGammaZX0(length, outputData, false);
+					for (int i = 0; i < length; i++)
+						outputData[outputIndex++] = inputData[inputIndex++];
+				}
+				else if (offset == lastOffset) {
+					WriteBit(0, outputData);
+					WriteInterlacedEliasGammaZX0(length, outputData, false);
+					inputIndex += length;
+				}
+				else {
+					WriteBit(1, outputData);
+					WriteInterlacedEliasGammaZX0((offset - 1) / 128 + 1, outputData, v2);
+					outputData[outputIndex++] = (byte)((127 - (offset - 1) % 128) << 1);
+					backTrack = true;
+					WriteInterlacedEliasGammaZX0(length - 1, outputData, false);
+					inputIndex += length;
+					lastOffset = offset;
+				}
+			}
+			WriteBit(1, outputData);
+			WriteInterlacedEliasGammaZX0(256, outputData, v2);
+			return outputSize;
+		}
+
+		private int PackZX1(byte[] inputData, int inputSize, byte[] outputData) {
+			int totalBits = ZxOptimize(inputData, inputSize, MAX_OFFSET_ZX1, true, out int[] parseIdx, out int[] parseOff, out int parseCount);
+			int outputSize = (totalBits + 24) / 8;
+
+			outputIndex = 0;
+			bitMask = 0;
+			backTrack = false;
+			int lastOffset = 1;
+			int inputIndex = 0;
+			int prevIndex = -1;
 			bool first = true;
-			for (optimal = next.chain; optimal != null; optimal = optimal.chain) {
-				if (optimal.offset == 0) {
+			for (int b = 0; b < parseCount; b++) {
+				int length = parseIdx[b] - prevIndex;
+				int offset = parseOff[b];
+				prevIndex = parseIdx[b];
+				if (offset == 0) {
 					if (first)
 						first = false;
 					else
 						WriteBit(0, outputData);
-
-					WriteInterlacedEliasGammaZX1(optimal.length, outputData);
-					for (int i = 0; i < optimal.length; i++)
+					WriteInterlacedEliasGammaZX1(length, outputData);
+					for (int i = 0; i < length; i++)
 						outputData[outputIndex++] = inputData[inputIndex++];
 				}
-				else
-					if (optimal.offset == lastOffset) {
-						WriteBit(0, outputData);
-						WriteInterlacedEliasGammaZX1(optimal.length, outputData);
-						inputIndex += optimal.length;
+				else if (offset == lastOffset) {
+					WriteBit(0, outputData);
+					WriteInterlacedEliasGammaZX1(length, outputData);
+					inputIndex += length;
+				}
+				else {
+					WriteBit(1, outputData);
+					if (offset > 128) {
+						outputData[outputIndex++] = (byte)(255 - ((offset - 1) & 254));
+						outputData[outputIndex++] = (byte)(252 - (offset - 1) / 256 * 2 + offset % 2);
 					}
-					else {
-						WriteBit(1, outputData);
-						if (optimal.offset > 128) {
-							outputData[outputIndex++] = (byte)(255 - ((optimal.offset - 1) & 254));
-							outputData[outputIndex++] = (byte)(252 - (optimal.offset - 1) / 256 * 2 + optimal.offset % 2);
-						}
-						else
-							outputData[outputIndex++] = (byte)(256 - optimal.offset * 2);
-
-						WriteInterlacedEliasGammaZX1(optimal.length - 1, outputData);
-						inputIndex += optimal.length;
-						lastOffset = optimal.offset;
-					}
+					else
+						outputData[outputIndex++] = (byte)(256 - offset * 2);
+					WriteInterlacedEliasGammaZX1(length - 1, outputData);
+					inputIndex += length;
+					lastOffset = offset;
+				}
 			}
 			WriteBit(1, outputData);
 			outputData[outputIndex++] = 255;
